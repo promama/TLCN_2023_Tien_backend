@@ -6,9 +6,14 @@ require("dotenv").config();
 
 const app = express();
 
+//enable cors and json
 app.use(express.json());
 app.use(cors());
 
+//routers:
+const userRouter = require("./router/users.router");
+
+//connect to mongodb
 mongoose.connect(
   "mongodb+srv://Phuc:PhucTLCN2023@cluster0.qeoyr.mongodb.net/eptShop",
   {
@@ -17,27 +22,33 @@ mongoose.connect(
   }
 );
 
-app.get("/", (req, res) => {
-  res.json({
-    success: true,
-    message: "connected, welcome to back end",
-  });
-});
+//user api
+app.use("/user", userRouter);
 
-const userSchema = {
-  email: String,
-  password: String,
-};
+// //test api
+// app.get("/", (req, res) => {
+//   res.json({
+//     success: true,
+//     data: 1,
+//     message: "connected, welcome to back end",
+//   });
+// });
 
-const user = mongoose.model("user", userSchema);
+// const userSchema = {
+//   email: String,
+//   password: String,
+// };
 
-app.post("/", (req, res) => {
-  const newUser = new user({
-    email: "abc@gmail.com",
-    password: "123456",
-  });
-  newUser.save();
-});
+// const user = mongoose.model("user", userSchema);
+
+// //test api
+// app.post("/", (req, res) => {
+//   const newUser = new user({
+//     email: "abc@gmail.com",
+//     password: "123456",
+//   });
+//   newUser.save();
+// });
 
 const port = process.env.PORT || 5000;
 
