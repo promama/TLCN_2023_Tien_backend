@@ -12,6 +12,7 @@ const userSchema = new mongoose.Schema({
   status: { type: String, require: true, default: "active" },
   role: { type: String, require: true, default: "user" },
   phoneNumber: { type: String },
+  address: { type: String },
 });
 
 const User = mongoose.model("Users", userSchema, "users");
