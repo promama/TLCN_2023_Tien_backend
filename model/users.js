@@ -13,6 +13,9 @@ const userSchema = new mongoose.Schema({
   role: { type: String, require: true, default: "user" },
   phoneNumber: { type: String },
   address: { type: String },
+  refreshToken: { type: String, default: "" },
+  avatar: { type: String },
+  create_at: { type: Date, default: Date.now },
 });
 
 const User = mongoose.model("Users", userSchema, "users");

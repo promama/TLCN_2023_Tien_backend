@@ -12,6 +12,7 @@ var productSchema = new mongoose.Schema({
   description: { type: String },
   price: { type: Number, require: true },
   remain: { type: Number, require: true, default: 0 },
+  isActive: { type: Boolean, default: true },
   create_at: { type: Date, default: Date.now },
 });
 

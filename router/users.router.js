@@ -5,5 +5,6 @@ var authController = require("../controller/auth.controller");
 
 router.get("/", userController.test);
 router.post("/createUser", userController.createAccount);
+router.post("/login", userController.loginAccount);
 
 module.exports = router;
