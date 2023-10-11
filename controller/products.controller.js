@@ -8,7 +8,7 @@ module.exports.createProduct = async (req, res) => {
       name: req.body.name,
       category: req.body.category,
       brand: req.body.brand,
-      description: req.body.desctription,
+      description: req.body.description,
       price: req.body.price,
       remain: req.body.remain,
     });
@@ -30,7 +30,7 @@ module.exports.getAllProduct = async (req, res) => {
   try {
     var products = await Product.find(
       {},
-      "_id name url category brand price remain"
+      "_id name url category brand price remain description"
     );
     if (products == 0) {
       res.json({
@@ -56,7 +56,7 @@ module.exports.findProductById = async (req, res) => {
   try {
     var product = await Product.find(
       { _id: req.params.id },
-      "_id name url category brand price remain"
+      "_id name url category brand price remain description"
     );
     if (product == 0) {
       res.json({
