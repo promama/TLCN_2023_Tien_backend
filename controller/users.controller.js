@@ -137,6 +137,8 @@ module.exports.loginAccount = async (req, res) => {
   // }
 };
 
+//input password from front end and password from database
+//then compare and return result
 async function compareHashedPassword(reqPassword, dbPassword) {
   var result;
   try {
@@ -150,6 +152,9 @@ async function compareHashedPassword(reqPassword, dbPassword) {
   return result;
 }
 
+//input email and password
+//check if user enter email and password
+//return false if any null or "", return true if all typed
 function checkTypedEmailPassword(email, password) {
   if (email == null || password == null || email == "" || password == "") {
     return false;
