@@ -33,6 +33,21 @@ module.exports.findSize = async (req, res) => {
   }
 };
 
+//test find size and update single size
+module.exports.findSizeAndUpdate = async (req, res) => {
+  var productId = req.body.id;
+  var productColor = req.body.color;
+  var productSize = req.body.size;
+
+  var products = await Color.findOneAndUpdate({
+    productId,
+    productColor,
+    sizes: { productSize },
+  });
+
+  console.log(products);
+};
+
 //create basic sizes 35-46
 //CAUTION: only run once for initialize
 module.exports.createSizes = async (req, res) => {
@@ -108,6 +123,10 @@ async function createColor(productId, colorProps) {
     productId,
     productColor: colorProps.productColor,
     sizes: colorProps.sizes,
+    url: colorProps.url,
+    url1: colorProps.url1,
+    url2: colorProps.url2,
+    url3: colorProps.url3,
   });
   await color.save();
   return color;
@@ -132,6 +151,33 @@ async function createSize(productId, productColor, sizeProps) {
   }
 }
 
+module.exports.findProductColorById = async (req, res) => {
+  try {
+    var color = await Color.find(
+      { productId: req.params.id },
+      "sizes productColor url url1 url2 url3"
+    );
+
+    if (color == 0) {
+      res.json({
+        success: true,
+        message: "no color found",
+      });
+    } else {
+      res.json({
+        success: true,
+        color,
+      });
+    }
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      message: err,
+      data: req.params.id,
+    });
+  }
+};
+
 //create new product
 module.exports.createProduct = async (req, res) => {
   var productProps = {
@@ -144,6 +190,11 @@ module.exports.createProduct = async (req, res) => {
 
   var colorProps = {
     productColor: req.body.color,
+    url: req.body.url,
+    url1: req.body.url1,
+    url2: req.body.url2,
+    url3: req.body.url3,
+
     sizes: [
       {
         productSize: req.body.size,
@@ -219,7 +270,7 @@ module.exports.getAllProduct = async (req, res) => {
   try {
     var products = await Product.find(
       {},
-      "_id name url category brand price remain description"
+      "_id name category brand price description url color"
     );
     if (products.length == 0) {
       res.json({
@@ -227,6 +278,12 @@ module.exports.getAllProduct = async (req, res) => {
         message: "no product found",
       });
     } else {
+      //console.log(products);
+      for (let i = 0; i < products.length; i++) {
+        const price = await Color.find({ productId: products[i]._id });
+        products[i].price = price[0].sizes[0].price;
+        products[i].url = price[0].url;
+      }
       res.json({
         success: true,
         products,
@@ -253,9 +310,13 @@ module.exports.findProductById = async (req, res) => {
         message: "no product found",
       });
     } else {
+      const price = await Color.find({ productId: product[0]._id });
+      console.log(price[0]);
+      product[0].price = price[0].sizes[0].price;
       res.json({
         success: true,
         product,
+        color: price[0].productColor,
       });
     }
   } catch (err) {
