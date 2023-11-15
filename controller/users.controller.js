@@ -6,6 +6,32 @@ const jwt = require("jsonwebtoken");
 
 require("dotenv").config();
 
+//input password from front end and password from database
+//then compare and return result
+async function compareHashedPassword(reqPassword, dbPassword) {
+  var result;
+  try {
+    result = await bcrypt.compare(reqPassword, dbPassword);
+  } catch (err) {
+    return {
+      success: false,
+      message: err,
+    };
+  }
+  return result;
+}
+
+//input email and password
+//check if user enter email and password
+//return false if any null or "", return true if all typed
+function checkTypedEmailPassword(email, password) {
+  if (email == null || password == null || email == "" || password == "") {
+    return false;
+  } else {
+    return true;
+  }
+}
+
 module.exports.test = async (req, res) => {
   var users = await User.find();
   if (users.length == 0) {
@@ -38,37 +64,45 @@ module.exports.loginAccount = async (req, res) => {
             status: user[0].status,
           },
           process.env.REFRESH_TOKEN_SECRET,
-          { expiresIn: "1d" }
+          { expiresIn: "1h" }
         );
         //create access token with time limit: 5mins
         const token = jwt.sign(
           { email: user[0].email },
           process.env.ACCESS_TOKEN_SECRET,
-          { expiresIn: "5m" }
+          { expiresIn: "10m" }
         );
         //find user and update refresh token
-        await User.findOneAndUpdate({ email }, { refreshToken });
-        res.status(201).json({
+        const userFound = await User.findOneAndUpdate(
+          { email },
+          { refreshToken }
+        );
+
+        const cart = await Cart.find({ userId: user[0]._id });
+
+        return res.status(201).json({
           success: true,
           message: "login success",
           email,
           token,
+          refreshToken,
+          cart: cart[0],
         });
       } else {
-        res.status(401).json({
+        return res.status(401).json({
           success: false,
           message: "wrong password",
         });
       }
     } else {
-      res.status(400).json({
+      return res.status(400).json({
         success: false,
         message: "no user found",
       });
     }
   } else {
     console.log("email: " + email + "/npassword: " + password);
-    res.status(400).json({
+    return res.status(400).json({
       success: false,
       message: "please enter your email and password",
     });
@@ -137,39 +171,13 @@ module.exports.loginAccount = async (req, res) => {
   // }
 };
 
-//input password from front end and password from database
-//then compare and return result
-async function compareHashedPassword(reqPassword, dbPassword) {
-  var result;
-  try {
-    result = await bcrypt.compare(reqPassword, dbPassword);
-  } catch (err) {
-    return {
-      success: false,
-      message: err,
-    };
-  }
-  return result;
-}
-
-//input email and password
-//check if user enter email and password
-//return false if any null or "", return true if all typed
-function checkTypedEmailPassword(email, password) {
-  if (email == null || password == null || email == "" || password == "") {
-    return false;
-  } else {
-    return true;
-  }
-}
-
 module.exports.createAccount = (req, res) => {
   if (
     req.body.email == "" ||
     req.body.password == "" ||
     req.body.repassword == ""
   ) {
-    res.status(400).json({
+    return res.status(400).json({
       success: false,
       message: "please fill all field",
     });
@@ -180,7 +188,7 @@ module.exports.createAccount = (req, res) => {
         .then((user) => {
           //check if email already existed
           if (user.length > 0) {
-            res.status(409).json({
+            return res.status(409).json({
               success: false,
               message: "email existed",
             });
@@ -188,7 +196,7 @@ module.exports.createAccount = (req, res) => {
             //hash password
             bcrypt.hash(req.body.password, 10, (err, hashed) => {
               if (err) {
-                res.status(500).json({
+                return res.status(500).json({
                   success: false,
                   message: err,
                 });
@@ -214,7 +222,7 @@ module.exports.createAccount = (req, res) => {
                   .save()
                   .then((result) => {
                     console.log(result);
-                    res.status(201).json({
+                    return res.status(201).json({
                       success: true,
                       data: {
                         email: user.email,
@@ -223,7 +231,7 @@ module.exports.createAccount = (req, res) => {
                     });
                   })
                   .catch((err) => {
-                    res.status(500).json({
+                    return res.status(500).json({
                       success: false,
                       message: "email format is not correct",
                     });
@@ -233,7 +241,7 @@ module.exports.createAccount = (req, res) => {
           }
         });
     } else {
-      res.status(400).json({
+      return res.status(400).json({
         success: false,
         message: "password and repassword not match!",
       });

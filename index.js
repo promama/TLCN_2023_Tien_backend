@@ -13,6 +13,7 @@ app.use(cors());
 const userRouter = require("./router/users.router");
 const productRouter = require("./router/products.router");
 const adminRouter = require("./router/admin.router");
+const cartRouter = require("./router/carts.router");
 
 //connect to mongodb
 mongoose.connect(
@@ -27,6 +28,7 @@ mongoose.connect(
 app.use("/user", userRouter);
 app.use("/product", productRouter);
 app.use("/admin", adminRouter);
+app.use("/cart", cartRouter);
 
 // //test api
 // app.get("/", (req, res) => {

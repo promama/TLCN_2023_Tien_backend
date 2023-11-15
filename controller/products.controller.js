@@ -1,6 +1,8 @@
 const Product = require("../model/products");
 const Color = require("../model/color");
 const Size = require("../model/size");
+const Category = require("../model/category");
+const Brand = require("../model/brand");
 
 //test find size in color
 module.exports.findSize = async (req, res) => {
@@ -102,75 +104,39 @@ async function checkDuplicateColor(productId, productColor) {
 }
 
 async function checkDuplicateSize(productId, productColor, productSize) {
-  var products = await Color.find({ productId, productColor });
-
-  for (let i = 0; i < products[0].sizes.length; i++) {
-    if (products[0].sizes[i].productSize == productSize) {
-      return true;
-    }
-  }
+  var products = await Size.find({ productId, productColor, productSize });
+  if (products.length > 0) return true;
   return false;
-}
-
-async function createDBProduct(productProps) {
-  var product = await Product.create(productProps);
-  await product.save();
-  return product;
-}
-
-async function createColor(productId, colorProps) {
-  var color = await Color.create({
-    productId,
-    productColor: colorProps.productColor,
-    sizes: colorProps.sizes,
-    url: colorProps.url,
-    url1: colorProps.url1,
-    url2: colorProps.url2,
-    url3: colorProps.url3,
-  });
-  await color.save();
-  return color;
-}
-
-async function createSize(productId, productColor, sizeProps) {
-  var products = await Color.find({ productId, productColor });
-  try {
-    products[0].sizes.push({
-      productSize: sizeProps.productSize,
-      quantity: sizeProps.quantity,
-      price: sizeProps.price,
-    });
-
-    await products[0].save();
-    return products;
-  } catch (err) {
-    return json({
-      success: false,
-      message: err,
-    });
-  }
 }
 
 module.exports.findProductColorById = async (req, res) => {
   try {
     var color = await Color.find(
       { productId: req.params.id },
-      "sizes productColor url url1 url2 url3"
+      "productColor url url1 url2 url3"
     );
 
     if (color == 0) {
-      res.json({
+      return res.json({
         success: true,
         message: "no color found",
       });
-    } else {
-      res.json({
-        success: true,
-        color,
-      });
     }
+
+    const size = await Size.find(
+      {
+        productId: req.params.id,
+      },
+      "productSize productColor"
+    ).sort({ productColor: "asc", productSize: "asc" });
+
+    return res.json({
+      success: true,
+      color,
+      size,
+    });
   } catch (err) {
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: err,
       data: req.params.id,
@@ -178,8 +144,8 @@ module.exports.findProductColorById = async (req, res) => {
   }
 };
 
-//create new product
-module.exports.createProduct = async (req, res) => {
+//create new product (old)
+module.exports.acreateProduct = async (req, res) => {
   var productProps = {
     url: req.body.url,
     name: req.body.name,
@@ -265,62 +231,239 @@ module.exports.createProduct = async (req, res) => {
   }
 };
 
-//get all products
+async function createDBProduct(name, price, category, brand, description, url) {
+  const p = await Product.create({
+    name,
+    price,
+    category,
+    brand,
+    description,
+    url,
+  });
+  await p.save();
+  return p;
+}
+
+async function createColor(
+  productId,
+  productName,
+  productColor,
+  url,
+  url1,
+  url2,
+  url3
+) {
+  const c = await Color.create({
+    productId: productId,
+    productName,
+    productColor,
+    url,
+    url1,
+    url2,
+    url3,
+  });
+  await c.save();
+  return c;
+}
+
+async function createSize(
+  productId,
+  productColor,
+  productSize,
+  quantity,
+  price
+) {
+  const s = await Size.create({
+    productId: productId,
+    productColor,
+    productSize,
+    quantity,
+    price,
+  });
+  await s.save();
+  return s;
+}
+
+async function createCategoryBrand(category, brand) {
+  const catFound = await Category.find({ name: category });
+  if (catFound.length < 1) {
+    const c = Category.create({ name: category });
+  }
+
+  const braFound = await Brand.find({ name: brand });
+  if (braFound.length < 1) {
+    const b = Brand.create({ name: brand });
+  }
+}
+
+//create new product
+module.exports.createProduct = async (req, res) => {
+  const {
+    name,
+    category,
+    brand,
+    description,
+    color,
+    size,
+    quantity,
+    price,
+    url,
+    url1,
+    url2,
+    url3,
+  } = req.body;
+  if (size < 35 || size > 46) {
+    return res.status(500).json({
+      success: false,
+      message: "size range must be between 35 and 46",
+    });
+  }
+
+  const isDuplicateProduct = await checkDuplicateProduct(name);
+  if (!isDuplicateProduct.success) {
+    try {
+      //create a brand new product, color, size. category and brand are optional if new
+      const p = await createDBProduct(
+        name,
+        price,
+        category,
+        brand,
+        description,
+        url
+      );
+      await createColor(p._id, name, color, url, url1, url2, url3);
+      await createSize(p._id, color, size, quantity, price);
+      await createCategoryBrand(category, brand);
+      return res.json({
+        success: true,
+        message: "create product success",
+      });
+    } catch (err) {
+      return res.json({
+        success: false,
+        message: err,
+      });
+    }
+  }
+
+  const isDuplicateColor = await checkDuplicateColor(
+    isDuplicateProduct.productId,
+    color
+  );
+  if (!isDuplicateColor.success) {
+    try {
+      //create new color and size of existed product. category and brand are optional if new
+      await createColor(
+        isDuplicateProduct.productId,
+        name,
+        color,
+        url,
+        url1,
+        url2,
+        url3
+      );
+      await createSize(
+        isDuplicateProduct.productId,
+        color,
+        size,
+        quantity,
+        price
+      );
+      await createCategoryBrand(category, brand);
+      return res.json({
+        success: true,
+        message: "create product success",
+      });
+    } catch (err) {
+      return res.json({
+        success: false,
+        message: err,
+      });
+    }
+  }
+
+  const isDuplicateSize = await checkDuplicateSize(
+    isDuplicateProduct.productId,
+    color,
+    size
+  );
+
+  if (!isDuplicateSize) {
+    try {
+      //create new size for product, color. category and brand are optional if new
+      await createSize(
+        isDuplicateProduct.productId,
+        color,
+        size,
+        quantity,
+        price
+      );
+      await createCategoryBrand(category, brand);
+      return res.json({
+        success: true,
+        message: "create product success",
+      });
+    } catch (err) {
+      return res.json({
+        success: false,
+        message: err,
+      });
+    }
+  }
+  return res.status(500).json({
+    success: false,
+    message: "product name, color, size duplicated, please change any of them",
+  });
+};
+
+//get all products (old)
 module.exports.getAllProduct = async (req, res) => {
   try {
     var products = await Product.find(
       {},
-      "_id name category brand price description url color"
+      "_id name category brand price description url"
     );
     if (products.length == 0) {
-      res.json({
+      return res.json({
         success: true,
         message: "no product found",
       });
-    } else {
-      //console.log(products);
-      for (let i = 0; i < products.length; i++) {
-        const price = await Color.find({ productId: products[i]._id });
-        products[i].price = price[0].sizes[0].price;
-        products[i].url = price[0].url;
-      }
-      res.json({
-        success: true,
-        products,
-      });
     }
+    //console.log(products);
+    return res.json({
+      success: true,
+      products,
+    });
   } catch (err) {
-    res.json({
+    return res.json({
       success: false,
       message: err,
     });
   }
 };
 
-//get 1 product by id
+//get 1 product by id (old)
 module.exports.findProductById = async (req, res) => {
   try {
     var product = await Product.find(
       { _id: req.params.id },
-      "_id name url category brand price remain description"
+      "_id name url category brand price description"
     );
     if (product == 0) {
-      res.json({
+      return res.json({
         success: true,
         message: "no product found",
       });
     } else {
       const price = await Color.find({ productId: product[0]._id });
-      console.log(price[0]);
-      product[0].price = price[0].sizes[0].price;
-      res.json({
+      return res.json({
         success: true,
         product,
         color: price[0].productColor,
       });
     }
   } catch (err) {
-    res.json({
+    return res.json({
       success: false,
       message: err,
       data: req.params.id,
