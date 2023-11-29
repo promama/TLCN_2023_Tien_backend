@@ -15,6 +15,8 @@ const userSchema = new mongoose.Schema({
   address: { type: String },
   refreshToken: { type: String, default: "" },
   avatar: { type: String },
+  sex: { type: String },
+  birthDay: { type: String },
   create_at: { type: Date, default: Date.now },
 });
 

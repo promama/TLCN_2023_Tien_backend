@@ -176,6 +176,8 @@ module.exports.addToCart = async (req, res) => {
         success: true,
         message: "Added product to cart",
         cart: products,
+        total: c.total,
+        quantity: c.quantity,
       });
     }
   } catch (err) {

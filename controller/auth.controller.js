@@ -96,6 +96,7 @@ module.exports.verifyUser = async (req, res, next) => {
   });
 };
 
+//old
 module.exports.averifyUser = async (req, res, next) => {
   let access_token = "";
   if (
