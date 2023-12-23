@@ -5,6 +5,7 @@ const Cart = require("../model/carts");
 
 const mongoose = require("mongoose");
 const ProductInCart = require("../model/productincart");
+const Order = require("../model/order");
 
 module.exports.subtractToCart = async (req, res) => {
   console.log("top");
@@ -22,8 +23,15 @@ module.exports.subtractToCart = async (req, res) => {
       size,
       status: "In cart",
     },
-    "price quantity"
+    "price quantity orderId"
   );
+
+  if (!pIncart) {
+    return res.status(500).json({
+      success: false,
+      message: "Signin again",
+    });
+  }
 
   if (pIncart[0].quantity < quantity) {
     return res.status(500).json({
@@ -41,39 +49,45 @@ module.exports.subtractToCart = async (req, res) => {
       size,
       status: "In cart",
     }).exec();
+  } else {
+    await ProductInCart.findOneAndUpdate(
+      {
+        userId: cartInfos.userId,
+        cartId: cartInfos._id,
+        productId: productId.id,
+        color,
+        size,
+        status: "In cart",
+      },
+      { $inc: { quantity: quantity * -1 } }
+    ).exec();
   }
 
   subtractTotal = pIncart[0].price * quantity;
-
-  await ProductInCart.findOneAndUpdate(
-    {
-      userId: cartInfos.userId,
-      cartId: cartInfos._id,
-      productId: productId.id,
-      color,
-      size,
-      status: "In cart",
-    },
-    { $inc: { quantity: quantity * -1 } }
-  ).exec();
 
   const c = await Cart.findOneAndUpdate(
     { _id: cartInfos._id },
     { $inc: { total: subtractTotal * -1, quantity: quantity * -1 } },
     { returnOriginal: false }
   ).exec();
+  await Order.findOneAndUpdate(
+    { cartId: cartInfos._id, status: "In cart" },
+    { $set: { total: c.total } }
+  ).exec();
 
   const products = await ProductInCart.find(
-    { cartId: cartInfos._id },
+    { cartId: cartInfos._id, status: "In cart" },
     "_id productName url price quantity size color productId"
   );
 
   return res.status(202).json({
     success: true,
-    message: "Added product to cart",
+    message: "subtracted product to cart",
     cart: products,
     total: c.total,
+    orderId: pIncart[0].orderId,
     quantity: c.quantity,
+    token: req.body.token,
   });
 };
 
@@ -85,21 +99,45 @@ module.exports.addToCart = async (req, res) => {
   let addedTotal = 0; //add total base on add product to cart: price * quantity
   let price = 0; //price of product
   let isValidProduct = false; //check if product is good to add to cart
+  let productDetail;
+  let colorDetail;
+  let product;
 
   const { productId, color, size, quantity, cartInfos, userId } = req.body;
   console.log(cartInfos);
 
-  const productDetail = await Product.find({ _id: productId.id });
-  const colorDetail = await Color.find({
-    productId: productId.id,
-    productColor: color,
-  });
+  try {
+    productDetail = await Product.find({ _id: productId.id });
+  } catch {
+    return res.status(500).json({
+      success: false,
+      message: "can't find productDetail",
+    });
+  }
+  try {
+    colorDetail = await Color.find({
+      productId: productId.id,
+      productColor: color,
+    });
+  } catch {
+    return res.status(500).json({
+      success: false,
+      message: "can't find colorDetail",
+    });
+  }
 
-  const product = await Size.find({
-    productId: productId.id,
-    productColor: color,
-    productSize: parseInt(size, 10),
-  });
+  try {
+    product = await Size.find({
+      productId: productId.id,
+      productColor: color,
+      productSize: parseInt(size, 10),
+    });
+  } catch {
+    return res.status(500).json({
+      success: false,
+      message: "can't find product",
+    });
+  }
 
   //check if product existed
   if (product.length == 0) {
@@ -135,6 +173,37 @@ module.exports.addToCart = async (req, res) => {
 
   //add stuff to cart
   console.log("line 60");
+
+  //check order status
+  //if status != "In cart"
+  //create new order
+  let order;
+  try {
+    const orderInfos = await Order.find({
+      userId: cartInfos.userId,
+      status: "In cart",
+    });
+
+    console.log("order: ");
+    console.log(orderInfos);
+    if (orderInfos.length == 0) {
+      //create order with userId
+      const newOrder = new Order({
+        _id: new mongoose.Types.ObjectId(),
+        userId: cartInfos.userId,
+        status: "In cart",
+      });
+
+      newOrder.save().then((result) => {
+        order = result._id;
+      });
+    } else {
+      order = orderInfos[0]._id;
+    }
+  } catch (err) {
+    console.log(err);
+  }
+
   const pInCart = await ProductInCart.find({
     userId: cartInfos.userId,
     cartId: cartInfos._id,
@@ -152,6 +221,7 @@ module.exports.addToCart = async (req, res) => {
         userId: cartInfos.userId,
         cartId: cartInfos._id,
         productId: productId.id,
+        orderId: order,
         quantity,
         price,
         color,
@@ -164,20 +234,27 @@ module.exports.addToCart = async (req, res) => {
         { $inc: { total: addedTotal, quantity: quantity } },
         { returnOriginal: false }
       ).exec();
+
+      await Order.findOneAndUpdate(
+        { userId: cartInfos.userId, status: "In cart" },
+        { total: c.total, cartId: cartInfos._id }
+      ).exec();
       console.log(89);
       console.log(c);
 
       const products = await ProductInCart.find(
-        { cartId: cartInfos._id },
+        { cartId: cartInfos._id, status: "In cart" },
         "_id productName url price quantity size color productId"
       );
 
       return res.status(202).json({
         success: true,
         message: "Added product to cart",
+        orderId: order,
         cart: products,
         total: c.total,
         quantity: c.quantity,
+        token: req.body.token,
       });
     }
   } catch (err) {
@@ -187,9 +264,11 @@ module.exports.addToCart = async (req, res) => {
     });
   }
 
+  //if product already in cart
+  //add amount quantity
   try {
     if (pInCart.length == 1) {
-      const p = await ProductInCart.findOneAndUpdate(
+      await ProductInCart.findOneAndUpdate(
         {
           userId: cartInfos.userId,
           cartId: cartInfos._id,
@@ -197,29 +276,36 @@ module.exports.addToCart = async (req, res) => {
           color,
           size,
           price,
+          status: "In cart",
         },
         {
           $inc: { quantity: quantity },
         }
-      );
+      ).exec();
       const c = await Cart.findOneAndUpdate(
         { _id: cartInfos._id },
         { $inc: { total: addedTotal, quantity: quantity } },
         { returnOriginal: false }
       ).exec();
+      await Order.findOneAndUpdate(
+        { userId: cartInfos.userId, status: "In cart" },
+        { total: c.total, cartId: cartInfos._id }
+      ).exec();
       console.log(118);
       console.log(c);
       const products = await ProductInCart.find(
-        { cartId: cartInfos._id },
+        { cartId: cartInfos._id, status: "In cart" },
         "_id productName url price quantity size color productId"
       );
 
       return res.status(202).json({
         success: true,
         message: "Added product to cart",
+        orderId: order,
         cart: products,
         total: c.total,
         quantity: c.quantity,
+        token: req.body.token,
       });
     }
   } catch (err) {
@@ -233,6 +319,34 @@ module.exports.addToCart = async (req, res) => {
     success: false,
     message: "smth wrong",
   });
+};
+
+module.exports.showCartItems = async (req, res) => {
+  console.log(req.body);
+  const { cartInfos } = req.body;
+
+  try {
+    const c = await Cart.find({ _id: cartInfos._id });
+
+    const products = await ProductInCart.find(
+      { cartId: cartInfos._id, status: "In cart" },
+      "_id productName url price quantity size color productId"
+    );
+    console.log("here");
+    console.log(c);
+    return res.status(202).json({
+      success: true,
+      cart: products,
+      total: c[0].total,
+      quantity: c[0].quantity,
+      message: "ok",
+    });
+  } catch (err) {
+    return res.status(500).json({
+      succes: false,
+      message: "signin again",
+    });
+  }
 };
 
 //test quantity

@@ -8,6 +8,7 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const dayjs = require("dayjs");
 const customParseFormat = require("dayjs/plugin/customParseFormat");
+const Order = require("../model/order");
 
 var ObjectID = require("mongodb").ObjectId;
 
@@ -76,9 +77,9 @@ module.exports.loginAccount = async (req, res) => {
         );
         //create access token with time limit: 5mins
         const token = jwt.sign(
-          { email: user[0].email },
+          { email: user[0].email, role: user[0].role },
           process.env.ACCESS_TOKEN_SECRET,
-          { expiresIn: "10m" }
+          { expiresIn: "5s" }
         );
         //find user and update refresh token
         const userFound = await User.findOneAndUpdate(
@@ -90,9 +91,14 @@ module.exports.loginAccount = async (req, res) => {
 
         const cart = await Cart.find({ userId: user[0]._id });
 
+        const order = await Order.find({
+          userId: user[0]._id,
+          status: "In cart",
+        });
+
         const products = await ProductInCart.find(
-          { userId: user[0]._id },
-          "productId color size url productName quantity price"
+          { userId: user[0]._id, status: "In cart" },
+          "productId color size url productName quantity price orderId"
         );
 
         return res.status(201).json({
@@ -104,6 +110,7 @@ module.exports.loginAccount = async (req, res) => {
           phoneNumber: u[0].phoneNumber,
           token,
           refreshToken,
+          orderId: order[0]?._id,
           cart: cart[0],
           products,
         });
@@ -176,6 +183,18 @@ module.exports.createAccount = (req, res) => {
                   _id: new mongoose.Types.ObjectId(),
                   userId: user._id,
                   isDefault: true,
+                });
+
+                //create order with userId
+                const order = new Order({
+                  _id: new mongoose.Types.ObjectId(),
+                  userId: user._id,
+                  cartId: cart._id,
+                  status: "In cart",
+                });
+
+                order.save().then((result) => {
+                  console.log(result);
                 });
 
                 address.save().then((result) => {
@@ -256,6 +275,7 @@ module.exports.createNewAddress = async (req, res) => {
       success: true,
       message: "edit success",
       address: allAddress,
+      token: req.body.token,
     });
   }
 
@@ -291,6 +311,7 @@ module.exports.createNewAddress = async (req, res) => {
           success: true,
           message: "create new main",
           address: result,
+          token: req.body.token,
         });
       }
     }
@@ -326,6 +347,7 @@ module.exports.createNewAddress = async (req, res) => {
       success: true,
       message: "create new sub",
       address: allAddress,
+      token: req.body.token,
     });
   } catch (err) {
     return res.status(500).json({
@@ -349,6 +371,7 @@ module.exports.getAllAddress = async (req, res) => {
       success: true,
       message: "get all address",
       address: allAddress,
+      token: req.body.token,
     });
   } catch (err) {
     return res.status(500).json({
@@ -408,9 +431,10 @@ module.exports.editUserProfile = async (req, res) => {
   //   });
   // }
 
-  return res.json({
+  return res.status(200).json({
     data: userInfos[0],
     message: "update infos success",
+    token: req.body.token,
   });
 };
 
@@ -432,6 +456,7 @@ module.exports.showUserShortProfile = async (req, res) => {
     success: true,
     message: "good",
     data: userShortProfile[0],
+    token: req.body.token,
   });
 };
 
@@ -473,6 +498,7 @@ module.exports.deleteUserAddressById = async (req, res) => {
       success: true,
       message: "delete success",
       address: addresses,
+      token: req.body.token,
     });
   } catch (err) {
     return res.status(500).json({
@@ -524,5 +550,6 @@ module.exports.setUserDefaultAddress = async (req, res) => {
     success: true,
     message: "set default success",
     address: addresses,
+    token: req.body.token,
   });
 };

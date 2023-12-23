@@ -1,16 +1,13 @@
 const mongoose = require("mongoose");
 
 var historySchema = new mongoose.Schema({
-  _id: { type: mongoose.Schema.Types.ObjectId, ref: "products" },
+  _id: { type: mongoose.Schema.Types.ObjectId },
   userId: { type: mongoose.Schema.Types.ObjectId, ref: "users" },
   cartId: { type: mongoose.Schema.Types.ObjectId, ref: "carts" },
-  name: { type: String, ref: "products" },
+  orderId: { type: mongoose.Schema.Types.ObjectId, ref: "orders" },
   quantity: { type: Number },
-  price: { type: Number },
-  url: { type: String },
+  total: { type: Number },
   status: { type: String },
-  color: { type: String },
-  size: { type: Number },
   modify_date: { type: Date, default: Date.now },
 });
 

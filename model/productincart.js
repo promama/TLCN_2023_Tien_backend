@@ -4,6 +4,7 @@ var productincartSchema = new mongoose.Schema({
   productId: { type: mongoose.Schema.Types.ObjectId, ref: "products" },
   cartId: { type: mongoose.Schema.Types.ObjectId, ref: "carts" },
   userId: { type: mongoose.Schema.Types.ObjectId, ref: "users" },
+  orderId: { type: mongoose.Schema.Types.ObjectId, ref: "orders" },
   productName: { type: String, ref: "products" },
   url: { type: String, ref: "colors" },
   quantity: { type: Number },
