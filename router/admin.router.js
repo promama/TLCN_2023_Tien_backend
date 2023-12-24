@@ -12,6 +12,7 @@ router.post("/login", adminController.login);
 //verify manager or admin middleware
 router.use(authController.verifyManagerAdmin);
 
+//users
 router.post("/verify", adminController.passVerify);
 router.post("/allUser", adminController.showAllUser);
 router.post("/editUser/:id", adminController.editUser);
@@ -19,6 +20,9 @@ router.delete("/delete/:id", adminController.deleteUser);
 
 //orders
 router.post("/getAllOrder", orderController.getAllOrderAdmin);
+
+//products
+router.post("/getAllProducts", adminController.showAllProduct);
 
 //test space
 router.post("/test", authController.testing);

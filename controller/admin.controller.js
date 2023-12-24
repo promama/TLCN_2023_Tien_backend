@@ -1,5 +1,10 @@
 const User = require("../model/users");
 const Cart = require("../model/carts");
+const Address = require("../model/address");
+const ProductInCart = require("../model/productincart");
+const Product = require("../model/products");
+const Color = require("../model/color");
+const Size = require("../model/size");
 const mongoose = require("mongoose");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
@@ -9,8 +14,6 @@ const {
   checkRole,
   checkUserExisted,
 } = require("../utilities/userContext");
-const Address = require("../model/address");
-const ProductInCart = require("../model/productincart");
 
 var ObjectID = require("mongodb").ObjectId;
 
@@ -270,5 +273,35 @@ module.exports.deleteUser = async (req, res) => {
   return res.status(500).json({
     success: false,
     message: "signin again",
+  });
+};
+
+module.exports.showAllProduct = async (req, res) => {
+  let resData = [];
+  let tempProduct = [];
+  let tempColor = [];
+  let tempSize = [];
+
+  let products = await Product.find();
+  products.map((product) => {
+    tempProduct.push(product);
+  });
+
+  let colors = await Color.find();
+  colors.map((color) => {
+    tempColor.push(color);
+  });
+
+  let sizes = await Size.find();
+  sizes.map((size) => {
+    tempSize.push(size);
+  });
+
+  return res.status(200).json({
+    success: true,
+    message: "ok",
+    products: tempProduct,
+    colors: tempColor,
+    sizes: tempSize,
   });
 };
