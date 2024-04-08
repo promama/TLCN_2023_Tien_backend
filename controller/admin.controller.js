@@ -8,6 +8,8 @@ const Size = require("../model/size");
 const mongoose = require("mongoose");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const dayjs = require("dayjs");
+const customParseFormat = require("dayjs/plugin/customParseFormat");
 const {
   checkPhoneNumberFormat,
   checkGender,
@@ -17,6 +19,7 @@ const {
 
 var ObjectID = require("mongodb").ObjectId;
 
+dayjs.extend(customParseFormat);
 require("dotenv").config();
 
 module.exports.deleteAllUser = async (req, res) => {};
@@ -178,6 +181,8 @@ module.exports.editUser = async (req, res) => {
     });
   }
 
+  let dateOfBirth = props.dob;
+
   updateProps = Object.assign(
     {},
     {
@@ -185,7 +190,7 @@ module.exports.editUser = async (req, res) => {
       sex: props.gender,
       status: props.status,
       role: props.role,
-      birthDay: props.dob,
+      birthDay: dateOfBirth,
     }
   );
 

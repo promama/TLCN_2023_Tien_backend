@@ -2,15 +2,11 @@ const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
 const cloudinary = require("cloudinary").v2;
-const Multer = require("multer");
-
-require("dotenv").config();
-
-const app = express();
-
-//enable cors and json
-app.use(express.json());
-app.use(cors());
+const multer = require("multer");
+const bodyParser = require("body-parser");
+const Product = require("./model/products");
+const Color = require("./model/color");
+const Size = require("./model/size");
 
 //routers:
 const userRouter = require("./router/users.router");
@@ -18,9 +14,21 @@ const productRouter = require("./router/products.router");
 const adminRouter = require("./router/admin.router");
 const cartRouter = require("./router/carts.router");
 const testingRouter = require("./router/testing.router");
-const Product = require("./model/products");
-const Color = require("./model/color");
-const Size = require("./model/size");
+
+require("dotenv").config();
+//cloudinary config
+// cloudinary.config({
+//   cloud_name: process.env.CLOUD_NAME,
+//   api_key: process.env.API_KEY,
+//   api_secret: process.env.API_SECRET,
+// });
+
+const app = express();
+
+//enable cors and json
+app.use(express.json());
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(cors());
 
 //connect to mongodb
 mongoose.connect(
@@ -31,44 +39,37 @@ mongoose.connect(
   }
 );
 
-//cloudinary config
-cloudinary.config({
-  cloud_name: process.env.CLOUD_NAME,
-  api_key: process.env.API_KEY,
-  api_secret: process.env.API_SECRET,
-});
+// async function handleUpload(file) {
+//   const res = await cloudinary.uploader.upload(file, {
+//     resource_type: "auto",
+//     folder: "e-tpshop",
+//   });
+//   return res;
+// }
 
-async function handleUpload(file) {
-  const res = await cloudinary.uploader.upload(file, {
-    resource_type: "auto",
-    folder: "e-tpshop",
-  });
-  return res;
-}
-
-//multer middleware
-const storage = new Multer.memoryStorage();
-const upload = Multer({
-  storage,
-});
+// //multer middleware
+// const storage = new Multer.memoryStorage();
+// const upload = multer({
+//   storage,
+// });
 
 //upload image
-app.post("/upload", upload.single("my_file"), async (req, res) => {
-  console.log(req.file);
-  try {
-    const b64 = Buffer.from(req.file.buffer).toString("base64");
-    let dataURI = "data:" + req.file.mimetype + ";base64," + b64;
-    const cldRes = await handleUpload(dataURI);
-    res.json(cldRes);
-  } catch (error) {
-    console.log(error);
-    res.send({
-      message: error.message,
-    });
-  }
-});
+// app.post("/upload", upload.single("my_file"), async (req, res) => {
+//   console.log(req.file);
+//   try {
+//     const b64 = Buffer.from(req.file.buffer).toString("base64");
+//     let dataURI = "data:" + req.file.mimetype + ";base64," + b64;
+//     const cldRes = await handleUpload(dataURI);
+//     res.json(cldRes);
+//   } catch (error) {
+//     console.log(error);
+//     res.send({
+//       message: error.message,
+//     });
+//   }
+// });
 
-//user api
+//base api
 app.use("/user", userRouter);
 app.use("/product", productRouter);
 app.use("/cart", cartRouter);

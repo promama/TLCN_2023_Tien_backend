@@ -4,6 +4,8 @@ const Size = require("../model/size");
 const Category = require("../model/category");
 const Brand = require("../model/brand");
 
+const { handleDeleteSingleFileCloudinary } = require("./upload.controller");
+
 //test find size in color
 module.exports.findSize = async (req, res) => {
   const productId = req.body.id;
@@ -73,13 +75,17 @@ module.exports.createSizes = async (req, res) => {
 };
 
 async function checkDuplicateProduct(productName) {
+  console.log("checking product duplicate");
+  console.log("product name: " + productName);
   var productFound = await Product.find({ name: productName });
   if (productFound.length > 0) {
+    console.log("product dup");
     return {
       success: true,
       productId: productFound[0]._id,
     };
   } else {
+    console.log("product not dup");
     return {
       success: false,
       message: "no duplicate",
@@ -88,6 +94,9 @@ async function checkDuplicateProduct(productName) {
 }
 
 async function checkDuplicateColor(productId, productColor) {
+  console.log("checking size duplicate");
+  console.log("product id: " + productId);
+  console.log("product color: " + productColor);
   var products = await Color.find({ productId, productColor });
   if (products.length > 0) {
     console.log("color dup");
@@ -96,7 +105,7 @@ async function checkDuplicateColor(productId, productColor) {
       product: products[0],
     };
   } else {
-    console.log("not dup");
+    console.log("color not dup");
     return {
       success: false,
     };
@@ -104,8 +113,16 @@ async function checkDuplicateColor(productId, productColor) {
 }
 
 async function checkDuplicateSize(productId, productColor, productSize) {
+  console.log("checking product duplicate");
+  console.log("product id: " + productId);
+  console.log("product color: " + productColor);
+  console.log("product size: " + productSize);
   var products = await Size.find({ productId, productColor, productSize });
-  if (products.length > 0) return true;
+  if (products.length > 0) {
+    console.log("size dup");
+    return true;
+  }
+  console.log("size not dup");
   return false;
 }
 
@@ -311,8 +328,14 @@ module.exports.createProduct = async (req, res) => {
     url1,
     url2,
     url3,
+    token,
   } = req.body;
+
   if (size < 35 || size > 46) {
+    handleDeleteSingleFileCloudinary(url);
+    handleDeleteSingleFileCloudinary(url1);
+    handleDeleteSingleFileCloudinary(url2);
+    handleDeleteSingleFileCloudinary(url3);
     return res.status(500).json({
       success: false,
       message: "size range must be between 35 and 46",
@@ -336,9 +359,14 @@ module.exports.createProduct = async (req, res) => {
       await createCategoryBrand(category, brand);
       return res.json({
         success: true,
-        message: "create product success",
+        message: "create product success 1",
+        access_token: token,
       });
     } catch (err) {
+      handleDeleteSingleFileCloudinary(url);
+      handleDeleteSingleFileCloudinary(url1);
+      handleDeleteSingleFileCloudinary(url2);
+      handleDeleteSingleFileCloudinary(url3);
       return res.json({
         success: false,
         message: err,
@@ -372,9 +400,14 @@ module.exports.createProduct = async (req, res) => {
       await createCategoryBrand(category, brand);
       return res.json({
         success: true,
-        message: "create product success",
+        message: "create product success 2",
+        access_token: token,
       });
     } catch (err) {
+      handleDeleteSingleFileCloudinary(url);
+      handleDeleteSingleFileCloudinary(url1);
+      handleDeleteSingleFileCloudinary(url2);
+      handleDeleteSingleFileCloudinary(url3);
       return res.json({
         success: false,
         message: err,
@@ -401,15 +434,24 @@ module.exports.createProduct = async (req, res) => {
       await createCategoryBrand(category, brand);
       return res.json({
         success: true,
-        message: "create product success",
+        message: "create product success 3",
+        access_token: token,
       });
     } catch (err) {
+      handleDeleteSingleFileCloudinary(url);
+      handleDeleteSingleFileCloudinary(url1);
+      handleDeleteSingleFileCloudinary(url2);
+      handleDeleteSingleFileCloudinary(url3);
       return res.json({
         success: false,
         message: err,
       });
     }
   }
+  handleDeleteSingleFileCloudinary(url);
+  handleDeleteSingleFileCloudinary(url1);
+  handleDeleteSingleFileCloudinary(url2);
+  handleDeleteSingleFileCloudinary(url3);
   return res.status(500).json({
     success: false,
     message: "product name, color, size duplicated, please change any of them",

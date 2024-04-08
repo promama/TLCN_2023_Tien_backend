@@ -207,6 +207,7 @@ module.exports.verifyManagerAdmin = async (req, res, next) => {
   let accessTokenDecode;
   let refreshTokenDecode;
   let access_token = "";
+
   if (
     req.headers.authorization &&
     req.headers.authorization.split(" ")[0] === "Bearer"
