@@ -84,7 +84,7 @@ module.exports.loginAccount = async (req, res) => {
         //find user and update refresh token
         const userFound = await User.findOneAndUpdate(
           { email },
-          { refreshToken }
+          { $push: { refreshToken } }
         );
 
         const u = await User.find({ email });
@@ -109,7 +109,6 @@ module.exports.loginAccount = async (req, res) => {
           gender: u[0].sex,
           phoneNumber: u[0].phoneNumber,
           token,
-          refreshToken,
           orderId: order[0]?._id,
           cart: cart[0],
           products,

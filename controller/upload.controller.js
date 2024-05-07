@@ -35,7 +35,7 @@ module.exports.uploadCloudinary = async (req, res, next) => {
     console.log(JSON.parse(req.body?.productData));
   } catch (err) {
     return res.status(400).json({
-      message: err,
+      message: "Please choose 1 up to 4 image(s) to upload",
     });
   }
   const request = JSON.parse(req.body?.productData);

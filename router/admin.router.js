@@ -38,6 +38,15 @@ router.post("/getAllOrder", orderController.getAllOrderAdmin);
 
 //products
 router.post("/getAllProducts", adminController.showAllProduct);
+router.post("/updateProductName", productController.updateProductName);
+router.post("/updateProductBrand", productController.updateProductBrand);
+router.post("/updateProductCategory", productController.updateProductCategory);
+router.post("/updateProductSize", productController.updateProductSize);
+router.post("/updateProductColor", productController.updateProductColor);
+router.post("/addProductSize", productController.addProductSize);
+
+router.delete("/deleteProductSize", productController.deleteProductSize);
+router.delete("/deleteProductColor", productController.deleteProductColor);
 
 //test space
 router.post("/test", authController.testing);

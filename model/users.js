@@ -1,4 +1,8 @@
 const mongoose = require("mongoose");
+const dayjs = require("dayjs");
+const customParseFormat = require("dayjs/plugin/customParseFormat");
+
+dayjs.extend(customParseFormat);
 
 const userSchema = new mongoose.Schema({
   _id: mongoose.Types.ObjectId,
@@ -13,7 +17,7 @@ const userSchema = new mongoose.Schema({
   role: { type: String, require: true, default: "User" },
   phoneNumber: { type: String },
   address: { type: String },
-  refreshToken: { type: String, default: "" },
+  refreshToken: { type: [String], default: "" },
   avatar: { type: String },
   sex: { type: String },
   birthDay: { type: String },

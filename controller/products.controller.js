@@ -5,6 +5,7 @@ const Category = require("../model/category");
 const Brand = require("../model/brand");
 
 const { handleDeleteSingleFileCloudinary } = require("./upload.controller");
+const ProductInCart = require("../model/productincart");
 
 //test find size in color
 module.exports.findSize = async (req, res) => {
@@ -357,10 +358,17 @@ module.exports.createProduct = async (req, res) => {
       await createColor(p._id, name, color, url, url1, url2, url3);
       await createSize(p._id, color, size, quantity, price);
       await createCategoryBrand(category, brand);
+
+      const allProduct = await Product.find();
+      const allColor = await Color.find();
+      const allSize = await Size.find();
+
       return res.json({
         success: true,
         message: "create product success 1",
-        access_token: token,
+        allProduct,
+        allColor,
+        allSize,
       });
     } catch (err) {
       handleDeleteSingleFileCloudinary(url);
@@ -398,10 +406,17 @@ module.exports.createProduct = async (req, res) => {
         price
       );
       await createCategoryBrand(category, brand);
+
+      const allProduct = await Product.find();
+      const allColor = await Color.find();
+      const allSize = await Size.find();
+
       return res.json({
         success: true,
         message: "create product success 2",
-        access_token: token,
+        allProduct,
+        allColor,
+        allSize,
       });
     } catch (err) {
       handleDeleteSingleFileCloudinary(url);
@@ -431,11 +446,18 @@ module.exports.createProduct = async (req, res) => {
         quantity,
         price
       );
+
+      const allProduct = await Product.find();
+      const allColor = await Color.find();
+      const allSize = await Size.find();
+
       await createCategoryBrand(category, brand);
       return res.json({
         success: true,
         message: "create product success 3",
-        access_token: token,
+        allProduct,
+        allColor,
+        allSize,
       });
     } catch (err) {
       handleDeleteSingleFileCloudinary(url);
@@ -511,4 +533,365 @@ module.exports.findProductById = async (req, res) => {
       data: req.params.id,
     });
   }
+};
+
+//update productName
+module.exports.updateProductName = async (req, res) => {
+  const { productId, productName } = req.body;
+
+  if (String(productName).trim() == "") {
+    return res.status(400).json({
+      success: false,
+      message: "Name invalid",
+    });
+  }
+  try {
+    await Product.updateMany(
+      { _id: productId },
+      { $set: { name: productName } }
+    );
+    await Color.updateMany(
+      { productId: productId },
+      { $set: { productName: productName } }
+    );
+  } catch (err) {
+    return res.status(400).json({
+      success: false,
+      message: err,
+    });
+  }
+  const products = await Product.find();
+  const colors = await Color.find();
+
+  return res.status(200).json({
+    products,
+    colors,
+    success: true,
+    message: "update product name successfully",
+  });
+};
+
+//update productBrand
+module.exports.updateProductBrand = async (req, res) => {
+  const { productId, productBrand } = req.body;
+  let oldProductBrand = "";
+
+  if (String(productBrand).trim() == "") {
+    return res.status(400).json({
+      success: false,
+      message: "Brand invalid",
+    });
+  }
+
+  try {
+    const product = await Product.find({ _id: productId });
+    oldProductBrand = product[0].brand;
+    console.log("old brand: " + oldProductBrand);
+  } catch (err) {
+    console.log(err);
+    return res.status(400).json({
+      success: false,
+      message: err,
+    });
+  }
+
+  //check if not have old brand, then create new brand
+  try {
+    const brand = await Brand.find({ name: productBrand });
+    if (brand.length < 1) {
+      const createNewBrand = await Brand.create({ name: productBrand });
+      await createNewBrand.save();
+    }
+  } catch (err) {
+    console.log(err);
+    return res.status(400).json({
+      success: false,
+      message: err,
+    });
+  }
+
+  try {
+    await Product.updateMany(
+      { _id: productId },
+      { $set: { brand: productBrand } }
+    );
+  } catch (err) {
+    console.log(err);
+    return res.status(400).json({
+      success: false,
+      message: err,
+    });
+  }
+  const products = await Product.find();
+
+  return res.status(200).json({
+    products,
+    success: true,
+    message: "update brand successfully",
+  });
+};
+
+module.exports.updateProductCategory = async (req, res) => {
+  const { productId, productCategory } = req.body;
+  let oldProductCategory = "";
+
+  if (String(productCategory).trim() == "") {
+    return res.status(400).json({
+      success: false,
+      message: "Category invalid",
+    });
+  }
+
+  try {
+    const product = await Product.find({ _id: productId });
+    oldProductCategory = product[0].category;
+    console.log("old category: " + oldProductCategory);
+  } catch (err) {
+    console.log(err);
+    return res.status(400).json({
+      success: false,
+      message: err,
+    });
+  }
+
+  //check if not have old brand, then create new brand
+  try {
+    const category = await Category.find({ name: productCategory });
+    if (category.length < 1) {
+      const createNewCategory = await Category.create({
+        name: productCategory,
+      });
+      await createNewCategory.save();
+    }
+  } catch (err) {
+    console.log(err);
+    return res.status(400).json({
+      success: false,
+      message: err,
+    });
+  }
+
+  try {
+    await Product.updateMany(
+      { _id: productId },
+      { $set: { category: productCategory } }
+    );
+  } catch (err) {
+    console.log(err);
+    return res.status(400).json({
+      success: false,
+      message: err,
+    });
+  }
+  const products = await Product.find();
+
+  return res.status(200).json({
+    products,
+    success: true,
+    message: "update category successfully",
+  });
+};
+
+module.exports.updateProductSize = async (req, res) => {
+  const { sizeId, productId, productColor, size, quantity, price } = req.body;
+
+  if (size < 35 || size > 46) {
+    return res.status(500).json({
+      success: false,
+      message: "size range must be between 35 and 46",
+    });
+  }
+
+  if (quantity < 1 || price < 0) {
+    return res.status(500).json({
+      success: false,
+      message: "Quantity or price is invalid",
+    });
+  }
+
+  try {
+    const duplicateSize = await Size.find({
+      productId,
+      productColor,
+      productSize: size,
+    });
+
+    if (duplicateSize.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: "New size is duplicate, please choose another size",
+      });
+    }
+  } catch (err) {
+    return res.status(400).json({
+      success: false,
+      message: err,
+    });
+  }
+
+  try {
+    const updatedSize = await Size.findOneAndUpdate(
+      { _id: sizeId },
+      { $set: { productSize: size, quantity, price } }
+    );
+    console.log(updatedSize);
+  } catch (err) {
+    return res.status(400).json({
+      success: false,
+      message: err,
+    });
+  }
+
+  const sizes = await Size.find();
+
+  return res.status(200).json({
+    success: true,
+    message: "Update size successfully",
+    sizes,
+  });
+};
+
+module.exports.updateProductColor = async (req, res) => {
+  const { colorId, productColor } = req.body;
+  console.log(req.body);
+
+  if (toString(colorId).trim() == "" || toString(productColor).trim() == "") {
+    return res.status(400).json({
+      success: false,
+      message: "Product must have color",
+    });
+  }
+
+  try {
+    await Color.updateMany({ _id: colorId }, { $set: { productColor } });
+  } catch (err) {}
+
+  const colors = await Color.find();
+
+  return res.status(200).json({
+    success: true,
+    message: "Update color successfully!",
+    colors,
+  });
+};
+
+module.exports.addProductSize = async (req, res) => {
+  const { productId, productColor, size, quantity, price } = req.body;
+
+  if (size < 35 || size > 46) {
+    return res.status(500).json({
+      success: false,
+      message: "size range must be between 35 and 46",
+    });
+  }
+
+  if (quantity < 1 || price < 1) {
+    return res.status(500).json({
+      success: false,
+      message: "Quantity or price is invalid",
+    });
+  }
+
+  const checkDuplicateSize = await Size.find({
+    productId,
+    productColor,
+    productSize: size,
+  });
+  if (checkDuplicateSize.length > 0) {
+    return res.status(400).json({
+      success: false,
+      message: "Size already create",
+    });
+  }
+
+  try {
+    await createSize(productId, productColor, size, quantity, price);
+  } catch (err) {
+    return res.status(400).json({
+      success: false,
+      message: "Fail to create size, please try again",
+    });
+  }
+
+  const sizes = await Size.find();
+
+  console.log(req.body);
+  return res.status(200).json({
+    success: true,
+    message: "Create size successfully",
+    sizes,
+  });
+};
+
+module.exports.deleteProductSize = async (req, res) => {
+  const { sizeId, productId, productColor, size } = req.body;
+
+  const isBuying = await ProductInCart.find({
+    status: "In cart",
+    productId,
+    color: productColor,
+    size,
+  });
+
+  if (isBuying.length > 0) {
+    return res.status(400).json({
+      success: false,
+      message: "Product is still in someone cart, cannot delete this size",
+    });
+  }
+
+  try {
+    await Size.deleteMany({ _id: sizeId });
+  } catch (err) {
+    return res.status(400).json({
+      success: false,
+      message: "Something when wrong",
+    });
+  }
+
+  const sizes = await Size.find();
+
+  return res.status(200).json({
+    success: true,
+    message: "Delete size successfully",
+    sizes,
+  });
+};
+
+module.exports.deleteProductColor = async (req, res) => {
+  const { productId, productColor, productName } = req.body;
+  console.log(req.body);
+
+  const isBuying = await ProductInCart.find({
+    status: "In cart",
+    productId,
+    color: productColor,
+  });
+
+  if (isBuying.length > 0) {
+    return res.status(400).json({
+      success: false,
+      message: "Product is still in someone cart, cannot delete this color",
+    });
+  }
+  //delete image in cloudinary
+  try {
+    await Color.deleteMany({ productId, productColor });
+    await Size.deleteMany({ productId, productColor });
+  } catch (err) {
+    return res.status(400).json({
+      success: false,
+      message: "Something when wrong",
+    });
+  }
+
+  const colors = await Color.find();
+  const sizes = await Size.find();
+
+  return res.status(200).json({
+    success: true,
+    message: "Delete size successfully",
+    sizes,
+    colors,
+  });
 };

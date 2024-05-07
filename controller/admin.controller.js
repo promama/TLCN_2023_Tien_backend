@@ -83,17 +83,16 @@ module.exports.login = async (req, res) => {
         const token = jwt.sign(
           { email: user[0].email, role: user[0].role },
           process.env.ACCESS_TOKEN_SECRET,
-          { expiresIn: "10m" }
+          { expiresIn: "10s" }
         );
         //find user and update refresh token
-        await User.findOneAndUpdate({ email }, { refreshToken });
+        await User.findOneAndUpdate({ email }, { $push: { refreshToken } });
 
         return res.status(201).json({
           success: true,
           message: "login success",
           email,
           token,
-          refreshToken,
         });
       } else {
         return res.status(401).json({

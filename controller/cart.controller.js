@@ -80,6 +80,10 @@ module.exports.subtractToCart = async (req, res) => {
     "_id productName url price quantity size color productId"
   );
 
+  if (req.body.deleteSize) {
+    next();
+  }
+
   return res.status(202).json({
     success: true,
     message: "subtracted product to cart",

@@ -10,9 +10,9 @@ function verifyToken(token) {}
 
 module.exports.verifyUser = async (req, res, next) => {
   let isTokenExpire = false;
-  let isRefreshTokenExpire = false;
+  let refreshTokenDecode = true;
   let accessTokenDecode;
-  let refreshTokenDecode;
+  let isRefreshTokenExpire;
   let access_token = "";
   if (
     req.headers.authorization &&
@@ -25,6 +25,7 @@ module.exports.verifyUser = async (req, res, next) => {
       message: "header wrong",
     });
   }
+  console.log(access_token);
 
   try {
     accessTokenDecode = jwt.verify(
@@ -34,6 +35,12 @@ module.exports.verifyUser = async (req, res, next) => {
   } catch {
     isTokenExpire = true;
   }
+
+  accessTokenDecode = jwt.decode(
+    access_token.toString(),
+    process.env.ACCESS_TOKEN_SECRET
+  );
+  console.log(accessTokenDecode);
 
   //check condition if token is not expired
   if (!isTokenExpire) {
@@ -65,14 +72,26 @@ module.exports.verifyUser = async (req, res, next) => {
 
   //condition when token is expired
   //checking refreshtoken
-  try {
-    refreshTokenDecode = jwt.verify(
-      req.body.refresh_token,
-      process.env.REFRESH_TOKEN_SECRET
-    );
-  } catch {
-    isRefreshTokenExpire = true;
+  const user = await User.find(
+    { email: accessTokenDecode?.email },
+    "email refreshToken role"
+  );
+  if (!user) {
+    return res.status(500).json({
+      success: false,
+      message: "signin again",
+      number: "3",
+    });
   }
+
+  user[0]?.refreshToken.map((token) => {
+    try {
+      isRefreshTokenExpire = false;
+      refreshTokenDecode = jwt.verify(token, process.env.REFRESH_TOKEN_SECRET);
+    } catch {
+      isRefreshTokenExpire = true;
+    }
+  });
 
   //both token and refreshtoken are expired
   //force signin again
@@ -86,7 +105,7 @@ module.exports.verifyUser = async (req, res, next) => {
 
   try {
     const userId = await User.find(
-      { email: refreshTokenDecode.email },
+      { email: accessTokenDecode?.email },
       "_id role"
     );
     if (!userId) {
@@ -98,7 +117,7 @@ module.exports.verifyUser = async (req, res, next) => {
     }
     req.body.userId = userId;
 
-    const cart = await Cart.find({ userId: userId[0]._id });
+    const cart = await Cart.find({ userId: userId[0]?._id });
     if (!cart) {
       return res.status(500).json({
         success: false,
@@ -107,7 +126,8 @@ module.exports.verifyUser = async (req, res, next) => {
     }
     console.log(cart[0]);
     req.body.cartInfos = cart[0];
-  } catch {
+  } catch (err) {
+    console.log(err);
     return res.status(500).json({
       success: false,
       message: "signin again",
@@ -119,7 +139,7 @@ module.exports.verifyUser = async (req, res, next) => {
   const token = jwt.sign(
     { email: refreshTokenDecode.email, role: refreshTokenDecode.role },
     process.env.ACCESS_TOKEN_SECRET,
-    { expiresIn: "5s" }
+    { expiresIn: "1m" }
   );
 
   req.body.token = token;
@@ -228,6 +248,12 @@ module.exports.verifyManagerAdmin = async (req, res, next) => {
     isTokenExpire = true;
   }
 
+  accessTokenDecode = jwt.decode(
+    access_token.toString(),
+    process.env.ACCESS_TOKEN_SECRET
+  );
+  console.log(accessTokenDecode);
+
   //check condition if token is not expired
   if (!isTokenExpire) {
     if (
@@ -268,14 +294,26 @@ module.exports.verifyManagerAdmin = async (req, res, next) => {
 
   //condition when token is expired
   //checking refreshtoken
-  try {
-    refreshTokenDecode = jwt.verify(
-      req.body.refresh_token,
-      process.env.REFRESH_TOKEN_SECRET
-    );
-  } catch {
-    isRefreshTokenExpire = true;
+  const user = await User.find(
+    { email: accessTokenDecode?.email },
+    "email refreshToken role"
+  );
+  if (!user) {
+    return res.status(500).json({
+      success: false,
+      message: "signin again",
+      number: "3",
+    });
   }
+
+  user[0]?.refreshToken.map((token) => {
+    try {
+      isRefreshTokenExpire = false;
+      refreshTokenDecode = jwt.verify(token, process.env.REFRESH_TOKEN_SECRET);
+    } catch {
+      isRefreshTokenExpire = true;
+    }
+  });
 
   if (isRefreshTokenExpire) {
     return res.status(500).json({
@@ -286,8 +324,8 @@ module.exports.verifyManagerAdmin = async (req, res, next) => {
   }
 
   if (
-    refreshTokenDecode.role !== "Manager" &&
-    refreshTokenDecode.role !== "Admin"
+    refreshTokenDecode?.role !== "Manager" &&
+    refreshTokenDecode?.role !== "Admin"
   ) {
     return res.status(500).json({
       success: false,
@@ -320,7 +358,7 @@ module.exports.verifyManagerAdmin = async (req, res, next) => {
   const token = jwt.sign(
     { email: refreshTokenDecode.email, role: refreshTokenDecode.role },
     process.env.ACCESS_TOKEN_SECRET,
-    { expiresIn: "5s" }
+    { expiresIn: "10s" }
   );
   req.body.userId = userId;
   req.body.token = token;
@@ -445,4 +483,16 @@ module.exports.testing = async (req, res) => {
   req.body.token = token;
   console.log("using refresh token");
   return next();
+};
+
+module.exports.testRetriveLastInArray = async (req, res) => {
+  const user = await User.find({ _id: "6614a03673658459627cc0f0" });
+
+  user[0].refreshToken.map((token) => {
+    console.log(token);
+  });
+
+  return res.json({
+    data: user,
+  });
 };
