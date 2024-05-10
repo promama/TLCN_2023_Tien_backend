@@ -480,6 +480,44 @@ module.exports.createProduct = async (req, res) => {
   });
 };
 
+//create new color
+module.exports.createColor = async (req, res) => {
+  const { productId, name, color, url, url1, url2, url3, token } = req.body;
+  console.log(req.body);
+
+  const isDuplicateColor = await checkDuplicateColor(productId, color);
+  if (!isDuplicateColor.success) {
+    try {
+      await createColor(productId, name, color, url, url1, url2, url3);
+      const colors = await Color.find();
+
+      return res.status(200).json({
+        success: true,
+        message: "create color success ",
+        colors,
+      });
+    } catch (err) {
+      handleDeleteSingleFileCloudinary(url);
+      handleDeleteSingleFileCloudinary(url1);
+      handleDeleteSingleFileCloudinary(url2);
+      handleDeleteSingleFileCloudinary(url3);
+      return res.status(400).json({
+        success: false,
+        message: err,
+      });
+    }
+  }
+
+  handleDeleteSingleFileCloudinary(url);
+  handleDeleteSingleFileCloudinary(url1);
+  handleDeleteSingleFileCloudinary(url2);
+  handleDeleteSingleFileCloudinary(url3);
+  return res.status(500).json({
+    success: false,
+    message: "Color is already exist, please choose another one",
+  });
+};
+
 //get all products (old)
 module.exports.getAllProduct = async (req, res) => {
   try {

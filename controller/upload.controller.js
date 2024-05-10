@@ -92,6 +92,54 @@ module.exports.uploadCloudinary = async (req, res, next) => {
   next();
 };
 
+module.exports.uploadColor = async (req, res, next) => {
+  try {
+    console.log(JSON.parse(req.body?.productData));
+  } catch (err) {
+    return res.status(400).json({
+      message: "Please choose 1 up to 4 image(s) to upload",
+    });
+  }
+  const request = JSON.parse(req.body?.productData);
+  const { folderName, folderColor, productId } = request;
+  let listURL = [];
+
+  if (req.files == undefined || req.files == "") {
+    return res.status(400).json({ success: false, message: "no file found" });
+  }
+  try {
+    req.files.map((file) => {
+      console.log(file);
+    });
+  } catch (err) {
+    return res.status(400).json({ success: false, message: err });
+  }
+
+  for (let i = 0; i < req.files.length; i++) {
+    const b64 = Buffer.from(req.files[i].buffer).toString("base64");
+    let dataURI = "data:" + req.files[i].mimetype + ";base64," + b64;
+    const cldRes = await handleUpload(dataURI, folderName, folderColor);
+    if (cldRes == false) {
+      return res.json({
+        success: false,
+        message: "upload not working",
+      });
+    }
+    listURL.push(cldRes.secure_url);
+  }
+
+  //set body for next
+  req.body.name = folderName;
+  req.body.color = folderColor;
+  req.body.productId = productId;
+  req.body.url = listURL[0];
+  req.body.url1 = listURL[1];
+  req.body.url2 = listURL[2];
+  req.body.url3 = listURL[3];
+
+  next();
+};
+
 function handleRetrivePathFromUrl(url) {
   //https://res.cloudinary.com/promama/image/upload/v1705636365/e-tpshop/NewFolder/White/p8gxdxufyxxyqxujhoyr.jpg
   const source = url.toString();
@@ -101,6 +149,7 @@ function handleRetrivePathFromUrl(url) {
 
   return decodeURI(result);
 }
+
 const handleDeleteSingleFileCloudinary = async (url) => {
   try {
     const result = handleRetrivePathFromUrl(url);

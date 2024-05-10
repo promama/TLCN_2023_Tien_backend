@@ -326,6 +326,7 @@ module.exports.addToCart = async (req, res) => {
 };
 
 module.exports.showCartItems = async (req, res) => {
+  console.log("showingCartItems");
   console.log(req.body);
   const { cartInfos } = req.body;
 
@@ -338,6 +339,15 @@ module.exports.showCartItems = async (req, res) => {
     );
     console.log("here");
     console.log(c);
+    if (products.length < 1) {
+      return res.status(202).json({
+        success: true,
+        cart: products,
+        total: 0,
+        quantity: 0,
+        message: "ok",
+      });
+    }
     return res.status(202).json({
       success: true,
       cart: products,

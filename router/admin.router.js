@@ -9,6 +9,7 @@ var {
   upload,
   uploadCloudinary,
   deleteSingleFileCloudinary,
+  uploadColor,
 } = require("../controller/upload.controller");
 
 router.delete("/deleteAllUser", adminController.deleteAllUser);
@@ -25,6 +26,12 @@ router.post(
   uploadCloudinary,
   productController.createProduct
 );
+router.post(
+  "/createColor",
+  upload.array("myFiles", 4),
+  uploadColor,
+  productController.createColor
+);
 router.post("/testDeleteByUrl", deleteSingleFileCloudinary);
 
 //users
@@ -35,6 +42,17 @@ router.delete("/delete/:id", adminController.deleteUser);
 
 //orders
 router.post("/getAllOrder", orderController.getAllOrderAdmin);
+router.post("/getDeliveringOrder", orderController.getAllDeliveryOrderAdmin);
+router.post(
+  "/approveOrder",
+  orderController.approveOrder,
+  orderController.getAllOrderAdmin
+);
+router.post(
+  "/finishOrder",
+  orderController.finishOrder,
+  orderController.getAllDeliveryOrderAdmin
+);
 
 //products
 router.post("/getAllProducts", adminController.showAllProduct);
