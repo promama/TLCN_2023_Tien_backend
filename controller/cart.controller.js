@@ -361,6 +361,44 @@ module.exports.showCartItems = async (req, res) => {
   }
 };
 
+module.exports.checkIsAddable = async (req, res, next) => {
+  console.log(req.body);
+  //find if product is in cart
+  const product = await ProductInCart.find({
+    productId: req.body.productId.id,
+    color: req.body.color,
+    size: req.body.size,
+    status: "In cart",
+  });
+
+  if (product.length < 1) {
+    return next();
+  }
+
+  console.log(product);
+
+  const size = await Size.find({
+    productId: req.body.productId.id,
+    productColor: req.body.color,
+    productSize: req.body.size,
+  });
+
+  if (size.length < 1) {
+    return res.status(500).json({
+      success: false,
+      message: "signin again",
+    });
+  }
+
+  if (size[0].quantity < parseInt(req.body.quantity) + product[0].quantity) {
+    return res.status(500).json({
+      success: false,
+      message: "You can't buy more than stock",
+    });
+  }
+  next();
+};
+
 //test quantity
 module.exports.testAddToCart = async (req, res) => {
   const { productId, color, size, quantity, userId } = req.body;

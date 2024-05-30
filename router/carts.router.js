@@ -9,7 +9,12 @@ var orderController = require("../controller/order.controller");
 router.use(authController.verifyUser);
 
 //add product to cart
-router.post("/addToCart", cartController.addToCart);
+router.post(
+  "/addToCart",
+  cartController.checkIsAddable,
+  cartController.addToCart
+);
+//router.post("/addToCart", cartController.checkIsAddable);
 //subtract product to cart
 router.post("/subtractToCart", cartController.subtractToCart);
 //get all cart items
