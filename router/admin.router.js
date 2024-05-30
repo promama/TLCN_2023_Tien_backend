@@ -5,6 +5,7 @@ var adminController = require("../controller/admin.controller");
 var authController = require("../controller/auth.controller");
 var orderController = require("../controller/order.controller");
 var productController = require("../controller/products.controller");
+var statisticController = require("../controller/statistic.controller");
 var {
   upload,
   uploadCloudinary,
@@ -65,6 +66,11 @@ router.post("/addProductSize", productController.addProductSize);
 
 router.delete("/deleteProductSize", productController.deleteProductSize);
 router.delete("/deleteProductColor", productController.deleteProductColor);
+
+//statistic
+router.get("/getStatisticByMonth", statisticController.statisticIncomeByMonth);
+router.get("/getGeneral", statisticController.generalStatistic);
+router.get("/incomeByStatus", statisticController.incomeByStatus);
 
 //test space
 router.post("/test", authController.testing);

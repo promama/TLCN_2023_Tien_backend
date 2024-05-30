@@ -1,10 +1,11 @@
 const mongoose = require("mongoose");
 
-var historySchema = new mongoose.Schema({
+var incomeSchema = new mongoose.Schema({
   _id: { type: mongoose.Schema.Types.ObjectId },
   income: { type: Number, default: 0 },
-  date: { type: Date, default: Date.now },
+  month: { type: String },
+  year: { type: String },
 });
 
-var History = mongoose.model("Historys", historySchema, "historys");
-module.exports = History;
+var Income = mongoose.model("Incomes", incomeSchema, "incomes");
+module.exports = Income;

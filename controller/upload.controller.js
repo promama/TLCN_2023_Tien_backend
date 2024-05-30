@@ -10,7 +10,7 @@ cloudinary.config({
 });
 
 //cloudinary root folder store every images
-const cloudinaryRoot = "e-tpshop";
+const cloudinaryRoot = process.env.CLOUDINARY_ROOT;
 var storage = new multer.memoryStorage();
 module.exports.upload = multer({ storage });
 
@@ -65,7 +65,11 @@ module.exports.uploadCloudinary = async (req, res, next) => {
   for (let i = 0; i < req.files.length; i++) {
     const b64 = Buffer.from(req.files[i].buffer).toString("base64");
     let dataURI = "data:" + req.files[i].mimetype + ";base64," + b64;
-    const cldRes = await handleUpload(dataURI, folderName, folderColor);
+    const cldRes = await handleUpload(
+      dataURI,
+      folderName,
+      folderColor.replace("#", "")
+    );
     if (cldRes == false) {
       return res.json({
         success: false,
@@ -118,7 +122,11 @@ module.exports.uploadColor = async (req, res, next) => {
   for (let i = 0; i < req.files.length; i++) {
     const b64 = Buffer.from(req.files[i].buffer).toString("base64");
     let dataURI = "data:" + req.files[i].mimetype + ";base64," + b64;
-    const cldRes = await handleUpload(dataURI, folderName, folderColor);
+    const cldRes = await handleUpload(
+      dataURI,
+      folderName,
+      folderColor.replace("#", "")
+    );
     if (cldRes == false) {
       return res.json({
         success: false,

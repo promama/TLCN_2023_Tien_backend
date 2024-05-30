@@ -181,8 +181,10 @@ module.exports.addToCart = async (req, res) => {
   //check order status
   //if status != "In cart"
   //create new order
-  let order;
+  let order = new mongoose.Types.ObjectId();
   try {
+    const newOrder = new mongoose.Types.ObjectId();
+    order = newOrder;
     const orderInfos = await Order.find({
       userId: cartInfos.userId,
       status: "In cart",
@@ -192,14 +194,10 @@ module.exports.addToCart = async (req, res) => {
     console.log(orderInfos);
     if (orderInfos.length == 0) {
       //create order with userId
-      const newOrder = new Order({
-        _id: new mongoose.Types.ObjectId(),
+      await Order.create({
+        _id: order,
         userId: cartInfos.userId,
         status: "In cart",
-      });
-
-      newOrder.save().then((result) => {
-        order = result._id;
       });
     } else {
       order = orderInfos[0]._id;

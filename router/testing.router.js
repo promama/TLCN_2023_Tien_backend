@@ -3,9 +3,13 @@ var router = express.Router();
 
 var authController = require("../controller/auth.controller");
 var orderController = require("../controller/order.controller");
+var statisticController = require("../controller/statistic.controller");
 
 router.post("/checkOrder", orderController.checkOrder);
 router.get("/lastElement", authController.testRetriveLastInArray);
+
+router.get("/incomeHistory", orderController.testIncomeHistory);
+router.get("/incomeByStatus", statisticController.incomeByStatus);
 
 router.use(authController.verifyUser);
 router.post("/allOrder", orderController.getAllOrderById);

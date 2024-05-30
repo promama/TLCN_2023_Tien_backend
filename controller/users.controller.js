@@ -296,7 +296,7 @@ module.exports.createNewAddress = async (req, res) => {
         addresses[i].phoneNumber == null
       ) {
         //create main address and return
-        const result = await Address.findByIdAndUpdate(
+        await Address.findByIdAndUpdate(
           { _id: addresses[i]._id },
           {
             $set: { address, phoneNumber, name },
@@ -306,10 +306,15 @@ module.exports.createNewAddress = async (req, res) => {
           }
         ).exec();
 
+        const allAddress = await Address.find(
+          { userId: userId[0]._id },
+          "_id userId isDefault address name phoneNumber"
+        ).sort({ isDefault: -1 });
+
         return res.status(200).json({
           success: true,
           message: "create new main",
-          address: result,
+          address: allAddress,
           token: req.body.token,
         });
       }

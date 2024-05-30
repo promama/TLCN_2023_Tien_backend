@@ -3,6 +3,12 @@ const Order = require("../model/order");
 const User = require("../model/users");
 const ProductInCart = require("../model/productincart");
 const Cart = require("../model/carts");
+const History = require("../model/history");
+const Income = require("../model/income");
+
+const dayjs = require("dayjs");
+const { ObjectId } = require("mongodb");
+dayjs().format();
 
 module.exports.checkOrder = async (req, res) => {
   const order = await Order.find({
@@ -47,6 +53,9 @@ module.exports.getAllOrderById = async (req, res) => {
         orderId: order._id,
         status: order.status,
         total: order.total,
+        address: order.address,
+        name: order.name,
+        phoneNumber: order.phoneNumber,
         productInOrder: [...order.data],
       };
       listOrder.push(tempList);
@@ -91,6 +100,9 @@ module.exports.getWaitingApproveOrder = async (req, res) => {
         orderId: order._id,
         status: order.status,
         total: order.total,
+        address: order.address,
+        name: order.name,
+        phoneNumber: order.phoneNumber,
         productInOrder: [...order.data],
       };
       listOrder.push(tempList);
@@ -135,6 +147,9 @@ module.exports.getDeliveringOrder = async (req, res) => {
         orderId: order._id,
         status: order.status,
         total: order.total,
+        address: order.address,
+        name: order.name,
+        phoneNumber: order.phoneNumber,
         productInOrder: [...order.data],
       };
       listOrder.push(tempList);
@@ -179,6 +194,9 @@ module.exports.getFinishOrder = async (req, res) => {
         orderId: order._id,
         status: order.status,
         total: order.total,
+        address: order.address,
+        name: order.name,
+        phoneNumber: order.phoneNumber,
         productInOrder: [...order.data],
       };
       listOrder.push(tempList);
@@ -192,17 +210,31 @@ module.exports.getFinishOrder = async (req, res) => {
 };
 
 module.exports.postUserConfirmOrder = async (req, res) => {
-  const { OrderId } = req.body;
+  const { orderId, addressInfos } = req.body;
   console.log(req.body);
+
+  if (Object.keys(addressInfos).length < 1) {
+    return res.status(400).json({
+      success: false,
+      message: "Please choose an address",
+    });
+  }
 
   try {
     await Order.findByIdAndUpdate(
-      { _id: OrderId },
-      { $set: { status: "Waiting approve" } }
+      { _id: orderId },
+      {
+        $set: {
+          status: "Waiting approve",
+          address: addressInfos.address,
+          name: addressInfos.name,
+          phoneNumber: addressInfos.phoneNumber,
+        },
+      }
     );
 
     await ProductInCart.updateMany(
-      { orderId: OrderId, status: "In cart" },
+      { orderId: orderId, status: "In cart" },
       { $set: { status: "Waiting approve" } }
     );
 
@@ -254,6 +286,9 @@ module.exports.getAllOrderAdmin = async (req, res) => {
         orderId: order._id,
         status: order.status,
         total: order.total,
+        address: order.address,
+        name: order.name,
+        phoneNumber: order.phoneNumber,
         productInOrder: [...order.data],
       };
       listOrder.push(tempList);
@@ -297,6 +332,9 @@ module.exports.getAllDeliveryOrderAdmin = async (req, res) => {
         orderId: order._id,
         status: order.status,
         total: order.total,
+        address: order.address,
+        name: order.name,
+        phoneNumber: order.phoneNumber,
         productInOrder: [...order.data],
       };
       listOrder.push(tempList);
@@ -335,22 +373,118 @@ module.exports.finishOrder = async (req, res, next) => {
   console.log(req.body);
 
   try {
+    const order = await Order.find({
+      _id: req.body.productInfos.orderId,
+    });
+
+    if (order.length < 1) {
+      return res.status(400).json({
+        success: false,
+        message: "No Order found",
+      });
+    }
+
+    await History.create({
+      _id: new ObjectId(),
+      orderId: order[0]._id,
+      name: order[0].name,
+      phoneNumber: order[0].phoneNumber,
+      address: order[0].address,
+      total: order[0].total,
+      status: "Finish",
+    });
+
+    const income = await Income.find({
+      month: dayjs().month() + 1,
+      year: dayjs().year(),
+    });
+
+    if (income.length < 1) {
+      await Income.create({
+        _id: new ObjectId(),
+        income: order[0].total,
+        month: dayjs().month() + 1,
+        year: dayjs().year(),
+      });
+    } else {
+      await Income.findOneAndUpdate(
+        {
+          month: dayjs().month() + 1,
+          year: dayjs().year(),
+        },
+        { $inc: { income: order[0].total } }
+      );
+    }
+  } catch (err) {
+    console.log(err);
+    return res.status(400).json({
+      success: false,
+      message: "Finish order fail 1",
+    });
+  }
+
+  try {
     await Order.findOneAndUpdate(
       { _id: req.body.productInfos.orderId },
-      { $set: { status: "Finish" } }
+      { $set: { status: "Finish", date: dayjs().toDate() } }
     );
     await ProductInCart.updateMany(
       { orderId: req.body.productInfos.orderId, status: "Delivering" },
-      { $set: { status: "Finish" } }
+      { $set: { status: "Finish", modify_date: dayjs().toDate() } }
     );
   } catch (err) {
+    console.log(err);
     return res.status(400).json({
       success: false,
-      message: "Finish order fail",
+      message: "Finish order fail 2",
     });
   }
 
   //get money to history
 
   next();
+};
+
+
+
+//test income history
+module.exports.testIncomeHistory = async (req, res) => {
+  const order = await Order.aggregate([
+    //cut date to month an year field with total
+    {
+      $project: {
+        day: { $substr: ["$date", 8, 2] },
+        month: { $substr: ["$date", 5, 2] },
+        year: { $substr: ["$date", 0, 4] },
+        total: "$total",
+      },
+    },
+    //sort asc
+    {
+      $sort: { month: -1 },
+    },
+    //group by month and year
+    {
+      $group: {
+        _id: {
+          month: "$month",
+          year: "$year",
+          day: "$day",
+        },
+        totalAmount: { $sum: "$total" },
+      },
+    },
+    //find month match
+    // {
+    //   $match: {
+    //     $expr: {
+    //       $eq: ["$_id.month", "03"],
+    //     },
+    //   },
+    // },
+  ]);
+
+  console.log(dayjs().toDate());
+
+  return res.json(order);
 };
