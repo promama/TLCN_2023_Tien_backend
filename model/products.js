@@ -9,6 +9,9 @@ var productSchema = new mongoose.Schema({
   description: { type: String },
   isActive: { type: Boolean, default: true },
   create_at: { type: Date, default: Date.now },
+  totalPoint: { type: Number, default: 0 },
+  numberOfRate: { type: Number, default: 0 },
+  sold: { type: Number, default: 0 },
 });
 
 var Product = mongoose.model("Products", productSchema, "products");

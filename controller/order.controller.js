@@ -8,6 +8,7 @@ const Income = require("../model/income");
 
 const dayjs = require("dayjs");
 const { ObjectId } = require("mongodb");
+const Product = require("../model/products");
 dayjs().format();
 
 module.exports.checkOrder = async (req, res) => {
@@ -261,6 +262,8 @@ module.exports.postUserConfirmOrder = async (req, res) => {
 module.exports.getAllOrderAdmin = async (req, res) => {
   console.log("top showing req.body: ");
   const listOrder = [];
+  //[Waiting approve, Delivering, Finish, Cancelled, Total]
+  const countEachOrder = [0, 0, 0, 0, 0];
   const data = await Order.aggregate([
     {
       $lookup: {
@@ -292,12 +295,32 @@ module.exports.getAllOrderAdmin = async (req, res) => {
         productInOrder: [...order.data],
       };
       listOrder.push(tempList);
+      if (order.status != "In cart") {
+        if (order.status === "Waiting approve") {
+          countEachOrder[0] = countEachOrder[0] + 1;
+          countEachOrder[4] = countEachOrder[4] + 1;
+        }
+        if (order.status === "Delivering") {
+          countEachOrder[1] = countEachOrder[1] + 1;
+          countEachOrder[4] = countEachOrder[4] + 1;
+        }
+        if (order.status === "Finish") {
+          countEachOrder[2] = countEachOrder[2] + 1;
+          countEachOrder[4] = countEachOrder[4] + 1;
+        }
+        if (order.status === "Cancelled") {
+          countEachOrder[3] = countEachOrder[3] + 1;
+          countEachOrder[4] = countEachOrder[4] + 1;
+        }
+      }
     }
   });
   console.log(listOrder);
+  console.log(countEachOrder);
   return res.json({
     success: true,
     listOrder,
+    countEachOrder,
   });
 };
 
@@ -384,6 +407,32 @@ module.exports.finishOrder = async (req, res, next) => {
       });
     }
 
+    //find products in cart for product id
+    //then find product with id
+    //update sold of product
+    const products = await ProductInCart.find({
+      orderId: req.body.productInfos.orderId,
+    });
+
+    if (products.length < 1) {
+      return res.status(400).json({
+        success: false,
+        message: "No Product found",
+      });
+    }
+    for (let index = 0; index < products.length; index++) {
+      await Product.findOneAndUpdate(
+        {
+          _id: products[index].productId,
+        },
+        {
+          $inc: {
+            sold: products[index].quantity,
+          },
+        }
+      );
+    }
+
     await History.create({
       _id: new ObjectId(),
       orderId: order[0]._id,
@@ -394,23 +443,28 @@ module.exports.finishOrder = async (req, res, next) => {
       status: "Finish",
     });
 
+    const now = new Date();
+    let yyyy = now.getFullYear();
+    let mm = now.getMonth() + 1;
+    let dd = now.getDate() + 1;
+
+    if (dd < 10) dd = "0" + dd;
+    if (mm < 10) mm = "0" + mm;
+
     const income = await Income.find({
-      month: dayjs().month() + 1,
-      year: dayjs().year(),
+      date: yyyy + "/" + mm + "/" + dd,
     });
 
     if (income.length < 1) {
       await Income.create({
         _id: new ObjectId(),
         income: order[0].total,
-        month: dayjs().month() + 1,
-        year: dayjs().year(),
+        date: yyyy + "/" + mm + "/" + dd,
       });
     } else {
       await Income.findOneAndUpdate(
         {
-          month: dayjs().month() + 1,
-          year: dayjs().year(),
+          date: yyyy + "/" + mm + "/" + dd,
         },
         { $inc: { income: order[0].total } }
       );
@@ -430,7 +484,14 @@ module.exports.finishOrder = async (req, res, next) => {
     );
     await ProductInCart.updateMany(
       { orderId: req.body.productInfos.orderId, status: "Delivering" },
-      { $set: { status: "Finish", modify_date: dayjs().toDate() } }
+      {
+        $set: {
+          status: "Finish",
+          modify_date: dayjs().toDate(),
+          allowRating: true,
+          rating: -1,
+        },
+      }
     );
   } catch (err) {
     console.log(err);
@@ -445,10 +506,8 @@ module.exports.finishOrder = async (req, res, next) => {
   next();
 };
 
-
-
 //test income history
-module.exports.testIncomeHistory = async (req, res) => {
+module.exports.testIncomeHistory1 = async (req, res) => {
   const order = await Order.aggregate([
     //cut date to month an year field with total
     {
@@ -467,13 +526,19 @@ module.exports.testIncomeHistory = async (req, res) => {
     {
       $group: {
         _id: {
+          day: "$day",
           month: "$month",
           year: "$year",
-          day: "$day",
         },
         totalAmount: { $sum: "$total" },
       },
     },
+    // {
+    //   $group: {
+    //     _id: { year: "$_id.year" },
+    //     day: { $push: { day: "$_id.day", total: "$totalAmount" } },
+    //   },
+    // },
     //find month match
     // {
     //   $match: {
@@ -487,4 +552,86 @@ module.exports.testIncomeHistory = async (req, res) => {
   console.log(dayjs().toDate());
 
   return res.json(order);
+};
+
+module.exports.testIncomeHistory = async (req, res) => {
+  //yearly income
+  let yearlyLabel = [];
+  let yearlyData = [];
+  const yearlyIncome = await Income.aggregate([
+    {
+      $project: {
+        day: { $substr: ["$date", 8, 2] },
+        month: { $substr: ["$date", 5, 2] },
+        year: { $substr: ["$date", 0, 4] },
+        income: "$income",
+      },
+    },
+    {
+      $group: {
+        _id: {
+          year: "$year",
+        },
+        income: { $sum: "$income" },
+      },
+    },
+    {
+      $sort: { "_id.year": 1 },
+    },
+  ]);
+
+  if (yearlyIncome.length < 1) {
+    return res.status(200).json({
+      success: false,
+      message: "fail to receive yearly incomes",
+    });
+  }
+
+  yearlyIncome.map((item) => {
+    yearlyLabel.push(item._id.year);
+    yearlyData.push(item.income);
+  });
+
+  //monthly income
+  let monthlyLabel = [];
+  let monthlyData = [];
+  const monthlyIncome = await Income.aggregate([
+    {
+      $project: {
+        day: { $substr: ["$date", 8, 2] },
+        month: { $substr: ["$date", 5, 2] },
+        year: { $substr: ["$date", 0, 4] },
+        income: "$income",
+      },
+    },
+    {
+      $group: {
+        _id: {
+          year: "$year",
+          month: "$month",
+        },
+        income: { $sum: "$income" },
+      },
+    },
+    {
+      $sort: { "_id.year": 1, "_id.month": 1 },
+    },
+  ]);
+
+  if (monthlyIncome.length < 1) {
+    return res.status(200).json({
+      success: false,
+      message: "fail to receive monthly incomes",
+    });
+  }
+
+  monthlyIncome.map((item) => {
+    monthlyLabel.push(item._id.month.concat("/", item._id.year));
+    monthlyData.push(item.income);
+  });
+
+  return res.json({
+    yearly: { yearlyLabel, yearlyData },
+    monthly: { monthlyLabel, monthlyData },
+  });
 };

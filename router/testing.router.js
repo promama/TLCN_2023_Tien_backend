@@ -10,6 +10,7 @@ router.get("/lastElement", authController.testRetriveLastInArray);
 
 router.get("/incomeHistory", orderController.testIncomeHistory);
 router.get("/incomeByStatus", statisticController.incomeByStatus);
+router.post("/testingStats", statisticController.testingStats);
 
 router.use(authController.verifyUser);
 router.post("/allOrder", orderController.getAllOrderById);

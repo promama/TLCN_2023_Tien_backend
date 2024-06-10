@@ -26,5 +26,10 @@ router.delete(
 
 //product
 router.post("/confirmOder", orderController.postUserConfirmOrder);
+router.post(
+  "/rateProduct",
+  userController.rateProduct,
+  orderController.getAllOrderById
+);
 
 module.exports = router;

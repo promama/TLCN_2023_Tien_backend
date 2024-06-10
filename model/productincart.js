@@ -13,6 +13,8 @@ var productincartSchema = new mongoose.Schema({
   color: { type: String },
   size: { type: Number },
   modify_date: { type: Date, default: Date.now },
+  rating: { type: Number, default: -1 },
+  allowRating: { type: Boolean, default: true },
 });
 
 var ProductInCart = mongoose.model(

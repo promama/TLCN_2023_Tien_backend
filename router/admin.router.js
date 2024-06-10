@@ -71,6 +71,17 @@ router.delete("/deleteProductColor", productController.deleteProductColor);
 router.get("/getStatisticByMonth", statisticController.statisticIncomeByMonth);
 router.get("/getGeneral", statisticController.generalStatistic);
 router.get("/incomeByStatus", statisticController.incomeByStatus);
+router.get("/statsYears", statisticController.statisticYears);
+router.get("/statsMonths/:year", statisticController.statisticMonths);
+router.get("/statsByMonth/:year", statisticController.statisticIncomeByYears);
+router.get(
+  "/statsByMonthAndYear/:year/:month",
+  statisticController.statisticIncomeByYearAndMonth
+);
+router.post(
+  "/statsBetweenTwoDates",
+  statisticController.statisticIncomeBetweenTwoDates
+);
 
 //test space
 router.post("/test", authController.testing);

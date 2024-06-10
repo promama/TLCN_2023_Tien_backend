@@ -523,7 +523,7 @@ module.exports.getAllProduct = async (req, res) => {
   try {
     var products = await Product.find(
       {},
-      "_id name category brand price description url"
+      "_id name category brand price description url numberOfRate totalPoint sold"
     );
     if (products.length == 0) {
       return res.json({

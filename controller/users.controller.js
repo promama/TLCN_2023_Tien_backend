@@ -9,6 +9,7 @@ const jwt = require("jsonwebtoken");
 const dayjs = require("dayjs");
 const customParseFormat = require("dayjs/plugin/customParseFormat");
 const Order = require("../model/order");
+const Product = require("../model/products");
 
 var ObjectID = require("mongodb").ObjectId;
 
@@ -556,4 +557,33 @@ module.exports.setUserDefaultAddress = async (req, res) => {
     address: addresses,
     token: req.body.token,
   });
+};
+
+module.exports.rateProduct = async (req, res, next) => {
+  console.log(req.body);
+
+  if (req.body.raing < 1 || req.body.rating > 5) {
+    return res.status(500).json({
+      success: false,
+      message: "rating must be between 1-5",
+    });
+  }
+
+  try {
+    await ProductInCart.findOneAndUpdate(
+      { _id: req.body._id },
+      { $set: { allowRating: false, rating: req.body.rating } }
+    );
+
+    await Product.findOneAndUpdate(
+      { _id: req.body.productId },
+      { $inc: { numberOfRate: 1, totalPoint: req.body.rating } }
+    );
+  } catch (err) {
+    return res.status(500).json({
+      success: false,
+      message: "error rating",
+    });
+  }
+  next();
 };
