@@ -11,6 +11,97 @@ const { ObjectId } = require("mongodb");
 const Product = require("../model/products");
 dayjs().format();
 
+var cron = require("node-cron");
+
+cron.schedule("*/10 * * * *", async () => {
+  console.log("running a task every minute");
+
+  const order = await Order.find({ status: "Delivering" });
+
+  if (order.length < 1) {
+    console.log("no order is in delivering status");
+  } else {
+    for (let index = 0; index < order.length; index++) {
+      if (dayjs(order[index].date).add(3, "day") <= dayjs(Date.now())) {
+        console.log(order[index]._id);
+
+        //find products in cart for product id
+        //then find product with id
+        //update sold of product
+        const products = await ProductInCart.find({
+          orderId: order[index]._id,
+        });
+
+        for (let index = 0; index < products.length; index++) {
+          await Product.findOneAndUpdate(
+            {
+              _id: products[index].productId,
+            },
+            {
+              $inc: {
+                sold: products[index].quantity,
+              },
+            }
+          );
+        }
+
+        await History.create({
+          _id: new ObjectId(),
+          orderId: order[index]._id,
+          name: order[index].name,
+          phoneNumber: order[index].phoneNumber,
+          address: order[index].address,
+          total: order[index].total,
+          status: "Finish",
+        });
+
+        const now = new Date();
+        let yyyy = now.getFullYear();
+        let mm = now.getMonth() + 1;
+        let dd = now.getDate() + 1;
+
+        if (dd < 10) dd = "0" + dd;
+        if (mm < 10) mm = "0" + mm;
+
+        const income = await Income.find({
+          date: yyyy + "/" + mm + "/" + dd,
+        });
+
+        if (income.length < 1) {
+          await Income.create({
+            _id: new ObjectId(),
+            income: order[index].total,
+            date: yyyy + "/" + mm + "/" + dd,
+          });
+        } else {
+          await Income.findOneAndUpdate(
+            {
+              date: yyyy + "/" + mm + "/" + dd,
+            },
+            { $inc: { income: order[index].total } }
+          );
+        }
+
+        await Order.findOneAndUpdate(
+          { _id: order[index]._id },
+          { $set: { status: "Finish", date: dayjs().toDate() } }
+        );
+        await ProductInCart.updateMany(
+          { orderId: order[index]._id, status: "Delivering" },
+          {
+            $set: {
+              status: "Finish",
+              modify_date: dayjs().toDate(),
+              allowRating: true,
+              rating: -1,
+            },
+          }
+        );
+      }
+    }
+  }
+});
+
 module.exports.checkOrder = async (req, res) => {
   const order = await Order.find({
     userId: req.body.userId,
@@ -380,7 +471,7 @@ module.exports.approveOrder = async (req, res, next) => {
     );
     await ProductInCart.updateMany(
       { orderId: req.body.productInfos.orderId, status: "Waiting approve" },
-      { $set: { status: "Delivering" } }
+      { $set: { status: "Delivering", date: dayjs().toDate() } }
     );
   } catch (err) {
     return res.status(400).json({
