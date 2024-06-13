@@ -23,6 +23,8 @@ router.delete(
   "/deleteUserAddressById/:id",
   userController.deleteUserAddressById
 );
+router.post("/finishOrder", orderController.finishOrder);
+router.post("/cancelOrder", orderController.cancelOrder);
 
 //product
 router.post("/confirmOder", orderController.postUserConfirmOrder);

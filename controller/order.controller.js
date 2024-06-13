@@ -397,7 +397,7 @@ module.exports.finishOrder = async (req, res, next) => {
 
   try {
     const order = await Order.find({
-      _id: req.body.productInfos.orderId,
+      _id: req.body.orderId,
     });
 
     if (order.length < 1) {
@@ -411,7 +411,7 @@ module.exports.finishOrder = async (req, res, next) => {
     //then find product with id
     //update sold of product
     const products = await ProductInCart.find({
-      orderId: req.body.productInfos.orderId,
+      orderId: req.body.orderId,
     });
 
     if (products.length < 1) {
@@ -420,6 +420,7 @@ module.exports.finishOrder = async (req, res, next) => {
         message: "No Product found",
       });
     }
+
     for (let index = 0; index < products.length; index++) {
       await Product.findOneAndUpdate(
         {
@@ -479,11 +480,11 @@ module.exports.finishOrder = async (req, res, next) => {
 
   try {
     await Order.findOneAndUpdate(
-      { _id: req.body.productInfos.orderId },
+      { _id: req.body.orderId },
       { $set: { status: "Finish", date: dayjs().toDate() } }
     );
     await ProductInCart.updateMany(
-      { orderId: req.body.productInfos.orderId, status: "Delivering" },
+      { orderId: req.body.orderId, status: "Delivering" },
       {
         $set: {
           status: "Finish",
@@ -501,9 +502,44 @@ module.exports.finishOrder = async (req, res, next) => {
     });
   }
 
-  //get money to history
+  return res.status(200).json({
+    success: true,
+    message: "Order is finished",
+    token: req.body.token,
+  });
+};
 
-  next();
+module.exports.cancelOrder = async (req, res) => {
+  console.log(req.body);
+  try {
+    await Order.findOneAndUpdate(
+      { _id: req.body.orderId },
+      { $set: { status: "Cancelled", date: dayjs().toDate() } }
+    );
+    await ProductInCart.updateMany(
+      { orderId: req.body.orderId, status: "Waiting approve" },
+      {
+        $set: {
+          status: "Cancelled",
+          modify_date: dayjs().toDate(),
+          allowRating: false,
+          rating: -1,
+        },
+      }
+    );
+  } catch (err) {
+    console.log(err);
+    return res.status(400).json({
+      success: false,
+      message: "Finish order fail 2",
+    });
+  }
+
+  return res.status(200).json({
+    success: true,
+    message: "Order is cancelled",
+    token: req.body.token,
+  });
 };
 
 //test income history

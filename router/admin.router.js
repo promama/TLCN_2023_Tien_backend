@@ -49,11 +49,6 @@ router.post(
   orderController.approveOrder,
   orderController.getAllOrderAdmin
 );
-router.post(
-  "/finishOrder",
-  orderController.finishOrder,
-  orderController.getAllDeliveryOrderAdmin
-);
 
 //products
 router.post("/getAllProducts", adminController.showAllProduct);
