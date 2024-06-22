@@ -25,6 +25,7 @@ router.delete(
 );
 router.post("/finishOrder", orderController.finishOrder);
 router.post("/cancelOrder", orderController.cancelOrder);
+router.post("/changePassword", userController.changePassword);
 
 //product
 router.post("/confirmOder", orderController.postUserConfirmOrder);

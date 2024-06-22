@@ -587,3 +587,72 @@ module.exports.rateProduct = async (req, res, next) => {
   }
   next();
 };
+
+module.exports.changePassword = async (req, res) => {
+  const { password, newPassword, reNewPassword } = req.body;
+
+  if (
+    password.trim() == "" ||
+    newPassword.trim() == "" ||
+    reNewPassword.trim() == ""
+  ) {
+    return res.status(400).json({
+      success: false,
+      message: "Please fill all field",
+    });
+  }
+
+  if (password == newPassword) {
+    return res.status(400).json({
+      success: false,
+      message: "Cannot set old password as new password",
+    });
+  }
+
+  const comparePassword = await User.find({
+    _id: req.body.userId[0]._id,
+  }).exec();
+
+  if (comparePassword.length < 1) {
+    return res.status(400).json({
+      success: false,
+      message: "User not found",
+    });
+  }
+
+  const matched = await compareHashedPassword(
+    password,
+    comparePassword[0].password
+  );
+  if (!matched) {
+    return res.status(400).json({
+      success: false,
+      message: "Current password not match",
+    });
+  }
+
+  if (newPassword !== reNewPassword) {
+    return res.status(400).json({
+      success: false,
+      message: "password and repassword not match!",
+    });
+  }
+
+  try {
+    const hashedPassword = bcrypt.hashSync(newPassword, 10);
+    await User.findOneAndUpdate(
+      { _id: req.body.userId[0]._id },
+      { $set: { password: hashedPassword } }
+    );
+    return res.status(201).json({
+      success: true,
+      message: "Change password success!",
+      token: req.body.token,
+    });
+  } catch (err) {
+    return res.status(400).json({
+      success: false,
+      message: "smth wrong",
+    });
+  }
+};
