@@ -790,7 +790,7 @@ module.exports.updateProductSize = async (req, res) => {
 };
 
 module.exports.updateProductColor = async (req, res) => {
-  const { colorId, productColor } = req.body;
+  const { colorId, productColor, productId, oldColor } = req.body;
   console.log(req.body);
 
   if (toString(colorId).trim() == "" || toString(productColor).trim() == "") {
@@ -802,14 +802,25 @@ module.exports.updateProductColor = async (req, res) => {
 
   try {
     await Color.updateMany({ _id: colorId }, { $set: { productColor } });
-  } catch (err) {}
+    await Size.updateMany(
+      { productId: productId, productColor: oldColor },
+      { $set: { productColor } }
+    );
+  } catch (err) {
+    return res.status(400).json({
+      success: false,
+      message: "smth wrong",
+    });
+  }
 
   const colors = await Color.find();
+  const sizes = await Size.find();
 
   return res.status(200).json({
     success: true,
     message: "Update color successfully!",
     colors,
+    sizes,
   });
 };
 
@@ -858,6 +869,46 @@ module.exports.addProductSize = async (req, res) => {
     success: true,
     message: "Create size successfully",
     sizes,
+  });
+};
+
+module.exports.deleteProduct = async (req, res) => {
+  const { productId } = req.body;
+  console.log(req.body);
+
+  const isBuying = await ProductInCart.find({
+    status: "In cart",
+    productId,
+  });
+
+  if (isBuying.length > 0) {
+    return res.status(400).json({
+      success: false,
+      message: "Product is still in someone cart, cannot delete this product",
+    });
+  }
+
+  try {
+    await Product.deleteMany({ _id: productId });
+    await Color.deleteMany({ productId });
+    await Size.deleteMany({ productId });
+  } catch (err) {
+    return res.status(400).json({
+      success: false,
+      message: "Something when wrong",
+    });
+  }
+
+  const products = await Product.find();
+  const colors = await Color.find();
+  const sizes = await Size.find();
+
+  return res.status(200).json({
+    success: true,
+    message: "Delete product successfully",
+    sizes,
+    colors,
+    products,
   });
 };
 
@@ -928,7 +979,7 @@ module.exports.deleteProductColor = async (req, res) => {
 
   return res.status(200).json({
     success: true,
-    message: "Delete size successfully",
+    message: "Delete color successfully",
     sizes,
     colors,
   });

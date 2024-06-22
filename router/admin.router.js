@@ -59,6 +59,7 @@ router.post("/updateProductSize", productController.updateProductSize);
 router.post("/updateProductColor", productController.updateProductColor);
 router.post("/addProductSize", productController.addProductSize);
 
+router.delete("/deleteProduct", productController.deleteProduct);
 router.delete("/deleteProductSize", productController.deleteProductSize);
 router.delete("/deleteProductColor", productController.deleteProductColor);
 
