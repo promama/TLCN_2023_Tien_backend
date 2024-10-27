@@ -145,7 +145,7 @@ module.exports.findProductColorById = async (req, res) => {
       {
         productId: req.params.id,
       },
-      "productSize productColor"
+      "productSize productColor price quantity"
     ).sort({ productColor: "asc", productSize: "asc" });
 
     return res.json({

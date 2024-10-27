@@ -14,6 +14,8 @@ module.exports.verifyUser = async (req, res, next) => {
   let accessTokenDecode;
   let isRefreshTokenExpire;
   let access_token = "";
+  console.log("verifying");
+  console.log(req.headers.authorization.split(" ")[1]);
   if (
     req.headers.authorization &&
     req.headers.authorization.split(" ")[0] === "Bearer"
@@ -40,6 +42,7 @@ module.exports.verifyUser = async (req, res, next) => {
     access_token.toString(),
     process.env.ACCESS_TOKEN_SECRET
   );
+  console.log(isTokenExpire);
   console.log(accessTokenDecode);
 
   //check condition if token is not expired
@@ -139,7 +142,7 @@ module.exports.verifyUser = async (req, res, next) => {
   const token = jwt.sign(
     { email: refreshTokenDecode.email, role: refreshTokenDecode.role },
     process.env.ACCESS_TOKEN_SECRET,
-    { expiresIn: "1m" }
+    { expiresIn: "5m" }
   );
 
   req.body.token = token;

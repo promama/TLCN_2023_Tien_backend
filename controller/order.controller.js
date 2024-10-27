@@ -116,6 +116,7 @@ module.exports.checkOrder = async (req, res) => {
 
 module.exports.getAllOrderById = async (req, res) => {
   console.log("top showing req.body: ");
+  console.log(req.body);
   const listOrder = [];
   const data = await Order.aggregate([
     {

@@ -58,6 +58,8 @@ module.exports.test = async (req, res) => {
 module.exports.loginAccount = async (req, res) => {
   const email = req.body.email;
   const password = req.body.password;
+
+  console.log(req.body);
   const haveEmailPassword = checkTypedEmailPassword(email, password);
   var matchedPassword = false;
 
@@ -80,7 +82,7 @@ module.exports.loginAccount = async (req, res) => {
         const token = jwt.sign(
           { email: user[0].email, role: user[0].role },
           process.env.ACCESS_TOKEN_SECRET,
-          { expiresIn: "5s" }
+          { expiresIn: "5m" }
         );
         //find user and update refresh token
         const userFound = await User.findOneAndUpdate(
@@ -364,6 +366,7 @@ module.exports.createNewAddress = async (req, res) => {
 
 module.exports.getAllAddress = async (req, res) => {
   console.log(req.body);
+  console.log("here");
 
   try {
     const { userId } = req.body;
