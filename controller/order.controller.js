@@ -117,6 +117,7 @@ module.exports.checkOrder = async (req, res) => {
 module.exports.getAllOrderById = async (req, res) => {
   console.log("top showing req.body: ");
   console.log(req.body);
+  const listStatus = [0, 0, 0, 0, 0];
   const listOrder = [];
   const data = await Order.aggregate([
     {
@@ -152,12 +153,23 @@ module.exports.getAllOrderById = async (req, res) => {
         productInOrder: [...order.data],
       };
       listOrder.push(tempList);
+      listStatus[0]++;
+      if (order.status === "Waiting approve") {
+        listStatus[1]++;
+      } else if (order.status === "Delivering") {
+        listStatus[2]++;
+      } else if (order.status === "Cancel") {
+        listStatus[3]++;
+      } else if (order.status === "Finish") {
+        listStatus[4]++;
+      }
     }
   });
   console.log(listOrder);
   return res.json({
     success: true,
     listOrder,
+    listStatus,
   });
 };
 
