@@ -34,14 +34,14 @@ module.exports.verifyUser = async (req, res, next) => {
       access_token.toString(),
       process.env.ACCESS_TOKEN_SECRET
     );
+    accessTokenDecode = jwt.decode(
+      access_token.toString(),
+      process.env.ACCESS_TOKEN_SECRET
+    );
   } catch {
     isTokenExpire = true;
   }
 
-  accessTokenDecode = jwt.decode(
-    access_token.toString(),
-    process.env.ACCESS_TOKEN_SECRET
-  );
   console.log(isTokenExpire);
   console.log(accessTokenDecode);
 
