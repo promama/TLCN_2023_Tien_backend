@@ -3,13 +3,14 @@ const Cart = require("../model/carts");
 const mongoose = require("mongoose");
 const ProductInCart = require("../model/productincart");
 const Address = require("../model/address");
+const Order = require("../model/order");
+const Product = require("../model/products");
 
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const dayjs = require("dayjs");
 const customParseFormat = require("dayjs/plugin/customParseFormat");
-const Order = require("../model/order");
-const Product = require("../model/products");
+const nodemailer = require("nodemailer");
 
 var ObjectID = require("mongodb").ObjectId;
 
@@ -45,11 +46,11 @@ function checkTypedEmailPassword(email, password) {
 module.exports.test = async (req, res) => {
   var users = await User.find();
   if (users.length == 0) {
-    res.json({
+    return res.json({
       message: "no user found",
     });
   } else {
-    res.json({
+    return res.json({
       users,
     });
   }
@@ -659,3 +660,13 @@ module.exports.changePassword = async (req, res) => {
     });
   }
 };
+
+const transporter = nodemailer.createTransport({
+  service: "Gmail",
+  auth: {
+    user: "maddison53@ethereal.email",
+    pass: "jn7jnAPss4f63QBp6D",
+  },
+});
+
+module.exports.sendMail = async (req, res) => {};

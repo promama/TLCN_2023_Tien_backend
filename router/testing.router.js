@@ -14,5 +14,6 @@ router.post("/testingStats", statisticController.testingStats);
 
 router.use(authController.verifyUser);
 router.post("/allOrder", orderController.getAllOrderById);
+// router.post('/sendmail')
 
 module.exports = router;
