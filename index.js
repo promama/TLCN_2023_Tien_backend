@@ -36,23 +36,19 @@ mongoose.connect(
 );
 
 //socket io for notify
-// const server = require("https").createServer(app);
-// const io = require("socket.io").listen(server);
-// const { Server } = require("socket.io");
-// const io = new Server({ cors: { origin: "http://192.168.0.104:8081" } });
 const http = require("http");
 const server = http.createServer(app);
 const { Server } = require("socket.io");
 const io = new Server(server);
-
 io.on("connection", (socket) => {
   console.log("a user connected :D");
+  //listen to client
   socket.on("chat message", (msg) => {
     console.log(msg);
+    //send message to client
     io.emit("server saying: ", `i can hear you saying: ${msg}`);
   });
 });
-
 server.listen(5001, () => {
   console.log("socket listen to port 5001");
 });
