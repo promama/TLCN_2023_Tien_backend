@@ -18,6 +18,7 @@ const testingRouter = require("./router/testing.router");
 require("dotenv").config();
 
 const app = express();
+const port = process.env.PORT || 5000;
 
 //enable cors and json
 app.use(express.json());
@@ -34,14 +35,20 @@ mongoose.connect(
   }
 );
 
+//socket io for notify
+const server = require("https").createServer(app);
+const io = require("socket.io").listen(server);
+
+io.on("connection", (socket) => {
+  console.log("a user connected :D");
+});
+
 //base api
 app.use("/user", userRouter);
 app.use("/product", productRouter);
 app.use("/cart", cartRouter);
 app.use("/admin", adminRouter);
 app.use("/testing", testingRouter);
-
-const port = process.env.PORT || 5000;
 
 app.listen(port, console.log(`Server is listening to port: ${port}`));
 
