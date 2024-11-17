@@ -8,6 +8,7 @@ var orderController = require("../controller/order.controller");
 router.get("/", userController.test);
 router.post("/createUser", userController.createAccount);
 router.post("/login", userController.loginAccount);
+router.post("/notification", userController.notification);
 
 //verify sign in middleware
 router.use(authController.verifyUser);

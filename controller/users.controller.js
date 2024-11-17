@@ -142,6 +142,22 @@ module.exports.loginAccount = async (req, res) => {
   }
 };
 
+module.exports.notification = async (req, res) => {
+  const notify = await Notification.find({ email: req.body.email });
+  let unreadNoti;
+
+  for (let index = 0; index < notify.length; index++) {
+    if (notify[index].isRead != true) {
+      unreadNoti++;
+    }
+  }
+
+  return res.json({
+    listNotification: notify,
+    unreadNoti,
+  });
+};
+
 module.exports.createAccount = (req, res) => {
   if (
     req.body.email == "" ||
