@@ -11,6 +11,7 @@ const jwt = require("jsonwebtoken");
 const dayjs = require("dayjs");
 const customParseFormat = require("dayjs/plugin/customParseFormat");
 const nodemailer = require("nodemailer");
+const Notification = require("../model/notification");
 
 var ObjectID = require("mongodb").ObjectId;
 
@@ -105,6 +106,8 @@ module.exports.loginAccount = async (req, res) => {
           "productId color size url productName quantity price orderId"
         );
 
+        const notify = await Notification.find({ email });
+
         return res.status(201).json({
           success: true,
           message: "login success",
@@ -116,6 +119,7 @@ module.exports.loginAccount = async (req, res) => {
           orderId: order[0]?._id,
           cart: cart[0],
           products,
+          notify,
         });
       } else {
         return res.status(401).json({

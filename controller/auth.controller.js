@@ -1,12 +1,112 @@
 const User = require("../model/users");
 const Cart = require("../model/carts");
+const SocketId = require("../model/socketid");
 const mongoose = require("mongoose");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const Socketid = require("../model/socketid");
 
 require("dotenv").config();
 
-function verifyToken(token) {}
+module.exports.verifyManagerToken = async (token) => {
+  let isTokenExpire = false;
+  let isRefreshTokenExpire = false;
+  let accessTokenDecode;
+  let refreshTokenDecode;
+
+  try {
+    accessTokenDecode = jwt.verify(
+      token.tostring(),
+      process.env.ACCESS_TOKEN_SECRET
+    );
+  } catch {
+    isTokenExpire = true;
+  }
+
+  accessTokenDecode = jwt.decode(token, process.env.ACCESS_TOKEN_SECRET);
+
+  if (!isTokenExpire) {
+    if (
+      accessTokenDecode.role != "Manager" &&
+      accessTokenDecode.role != "Admin"
+    ) {
+      return {
+        success: false,
+        message: "you're not admin or manager",
+        number: "1",
+      };
+    }
+
+    const userId = await User.find(
+      { email: accessTokenDecode.email },
+      "_id role"
+    );
+    if (!userId) {
+      return {
+        success: false,
+        message: "can't find user",
+        number: "2",
+      };
+    }
+    if (userId[0].role == "Manager" || userId[0].role == "Admin") {
+      return { success: true, message: "welcome back", number: "ok" };
+    }
+    return { success: false, message: "some error", number: "3" };
+  }
+
+  const user = await User.find(
+    { email: accessTokenDecode?.email },
+    "email refreshToken role"
+  );
+  if (!user) {
+    return { success: false, message: "can't find user", number: "4" };
+  }
+  user[0]?.refreshToken.map((token) => {
+    try {
+      isRefreshTokenExpire = false;
+      refreshTokenDecode = jwt.verify(token, process.env.REFRESH_TOKEN_SECRET);
+    } catch {
+      isRefreshTokenExpire = true;
+    }
+  });
+  if (isRefreshTokenExpire) {
+    return {
+      sucess: false,
+      message: "token and refreshtoken are expire",
+      number: "5",
+    };
+  }
+  if (
+    refreshTokenDecode?.role !== "Manager" &&
+    refreshTokenDecode?.role !== "Admin"
+  ) {
+    return {
+      success: false,
+      message: "you're not admin or manager",
+      number: "6",
+    };
+  }
+  const userId = await User.find(
+    { email: refreshTokenDecode.email },
+    "_id role"
+  );
+  if (!userId) {
+    return {
+      success: false,
+      message: "can't find user",
+      number: "7",
+    };
+  }
+  return {
+    success: true,
+    message: "welcome",
+  };
+};
+
+module.exports.decodeUserToken = async (token) => {
+  accessTokenDecode = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+  return accessTokenDecode;
+};
 
 module.exports.verifyUser = async (req, res, next) => {
   let isTokenExpire = false;

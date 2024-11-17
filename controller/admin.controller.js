@@ -16,6 +16,7 @@ const {
   checkRole,
   checkUserExisted,
 } = require("../utilities/userContext");
+const { verifyManagerToken } = require("./auth.controller");
 
 var ObjectID = require("mongodb").ObjectId;
 
@@ -87,6 +88,8 @@ module.exports.login = async (req, res) => {
         );
         //find user and update refresh token
         await User.findOneAndUpdate({ email }, { $push: { refreshToken } });
+
+        //socketing
 
         return res.status(201).json({
           success: true,
@@ -307,5 +310,21 @@ module.exports.showAllProduct = async (req, res) => {
     products: tempProduct,
     colors: tempColor,
     sizes: tempSize,
+  });
+};
+
+//test space
+module.exports.socketValidate = async (req, res) => {
+  //const listUsers = await User.find({ role: { $not: /^A.*/ } });
+  console.log("i'm running");
+  // console.log(req.body.token);
+
+  const result = await verifyManagerToken(req.body.token);
+  console.log(result);
+
+  return res.json({
+    message: "ok",
+    //user: listUsers,
+    socketId: req.body.userSocketId,
   });
 };
