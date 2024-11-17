@@ -144,8 +144,8 @@ module.exports.loginAccount = async (req, res) => {
 
 module.exports.notification = async (req, res) => {
   const notify = await Notification.find({ email: req.body.email });
-  let unreadNoti;
-
+  let unreadNoti = 0;
+  console.log(req.body.email);
   for (let index = 0; index < notify.length; index++) {
     if (notify[index].isRead != true) {
       unreadNoti++;
