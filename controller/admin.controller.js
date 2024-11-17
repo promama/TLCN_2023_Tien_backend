@@ -17,6 +17,7 @@ const {
   checkUserExisted,
 } = require("../utilities/userContext");
 const { verifyManagerToken } = require("./auth.controller");
+const Notification = require("../model/notification");
 
 var ObjectID = require("mongodb").ObjectId;
 
@@ -310,6 +311,21 @@ module.exports.showAllProduct = async (req, res) => {
     products: tempProduct,
     colors: tempColor,
     sizes: tempSize,
+  });
+};
+
+module.exports.adminNotification = async (req, res) => {
+  const notify = await Notification.find();
+  let unreadNoti = 0;
+  for (let index = 0; index < notify.length; index++) {
+    if (notify[index].isManagerRead != true) {
+      unreadNoti++;
+    }
+  }
+
+  return res.json({
+    listNotification: notify,
+    unreadNoti,
   });
 };
 

@@ -15,6 +15,7 @@ const notificationSchema = new mongoose.Schema({
   orderId: { type: mongoose.Schema.Types.ObjectId, ref: "orders" },
   events: { type: String, require: true },
   isRead: { type: Boolean, default: false },
+  isManagerRead: { type: Boolean, default: false },
   create_at: { type: Date, default: Date.now },
   last_update: { type: Date, default: Date.now },
 });

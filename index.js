@@ -102,9 +102,16 @@ io.on("connection", (socket) => {
     //emit to manager room that user confirm and buy order
     //return new notify to admin too
     const managerNoti = await Notification.find();
+    let managerUnreadNoti = 0;
+    for (let index = 0; index < managerNoti.length; index++) {
+      if (managerNoti[index].isManagerRead != true) {
+        managerUnreadNoti++;
+      }
+    }
     socket.to("manager").emit("server:user-confirm-order", {
       message: "a user is confirm a new order",
       notify: managerNoti,
+      managerUnreadNoti,
     });
   });
 
@@ -122,9 +129,16 @@ io.on("connection", (socket) => {
       orderId: message.orderDetail.orderId,
     });
     const userNoti = await Notification.find({ email: user[0].email });
+    let userUnreadNoti = 0;
+    for (let index = 0; index < userNoti.length; index++) {
+      if (userNoti[index].isRead != true) {
+        userUnreadNoti++;
+      }
+    }
     socket.to(user[0].email).emit("server:manager-approved-order", {
       message: "your order is approved by manager",
       notify: userNoti,
+      userUnreadNoti,
     });
   });
 
@@ -146,10 +160,17 @@ io.on("connection", (socket) => {
     });
     //emit to manager room that user finish
     //return new notify to admin too
+    let managerUnreadNoti = 0;
+    for (let index = 0; index < userNoti.length; index++) {
+      if (userNoti[index].isManagerRead != true) {
+        managerUnreadNoti++;
+      }
+    }
     const managerNoti = await Notification.find();
     socket.to("manager").emit("server:user-finish-order", {
       message: "a user is finish an order",
       notify: managerNoti,
+      managerUnreadNoti,
     });
   });
 

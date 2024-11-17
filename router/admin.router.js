@@ -16,6 +16,7 @@ var {
 router.delete("/deleteAllUser", adminController.deleteAllUser);
 router.delete("/deleteUser", adminController.deleteUser);
 router.post("/login", adminController.login);
+router.post("/notification", adminController.adminNotification);
 
 //verify manager or admin middleware
 router.use(authController.verifyManagerAdmin);
