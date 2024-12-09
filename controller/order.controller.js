@@ -12,6 +12,7 @@ const Product = require("../model/products");
 dayjs().format();
 
 var cron = require("node-cron");
+const Deliverorder = require("../model/deliverorder");
 
 cron.schedule("*/10 * * * *", async () => {
   console.log("running a task every minute");
@@ -486,6 +487,18 @@ module.exports.approveOrder = async (req, res, next) => {
       { orderId: req.body.productInfos.orderId, status: "Waiting approve" },
       { $set: { status: "Delivering", date: dayjs().toDate() } }
     );
+
+    const order = await Order.find({ _id: req.body.productInfos.orderId });
+
+    await Deliverorder.create({
+      _id: new mongoose.Types.ObjectId(),
+      orderId: order[0]._id,
+      name: order[0].name,
+      phoneNumber: order[0].phoneNumber,
+      address: order[0].address,
+      total: order[0].total,
+      status: "Approved",
+    });
   } catch (err) {
     return res.status(400).json({
       success: false,

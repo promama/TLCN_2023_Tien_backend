@@ -8,12 +8,15 @@ const Product = require("./model/products");
 const Color = require("./model/color");
 const Size = require("./model/size");
 const User = require("./model/users");
+const DeliverOrder = require("./model/deliverorder");
+const DeliverNotify = require("./model/delivernotify");
 
 //routers:
 const userRouter = require("./router/users.router");
 const productRouter = require("./router/products.router");
 const adminRouter = require("./router/admin.router");
 const cartRouter = require("./router/carts.router");
+const deliverRouter = require("./router/deliver.router");
 const testingRouter = require("./router/testing.router");
 
 require("dotenv").config();
@@ -46,6 +49,8 @@ const {
 } = require("./controller/auth.controller");
 const { instrument } = require("@socket.io/admin-ui");
 const Notification = require("./model/notification");
+const Order = require("./model/order");
+const Deliverorder = require("./model/deliverorder");
 
 const io = new Server(server, {
   cors: {
@@ -61,8 +66,20 @@ instrument(io, {
   auth: false,
 });
 
+//socket
 io.on("connection", (socket) => {
   console.log("a user connected :D with socketId: ");
+
+  //deliver join room with deliver's email and deliver room
+  socket.on("deliver:join", async (msg) => {
+    console.log(msg);
+    socket.join(msg.room);
+    socket.join("deliver");
+    socket.to(msg.room).emit("server:acceptjoin", {
+      message: `allow join room deliver and room ${msg.room}`,
+      success: true,
+    });
+  });
 
   //user join a room name user's email
   socket.on("user:join", async (msg) => {
@@ -140,6 +157,37 @@ io.on("connection", (socket) => {
       notify: userNoti,
       userUnreadNoti,
     });
+
+    //move order id to deliver order
+    const newDeliverNotifyId = new mongoose.Types.ObjectId();
+
+    await DeliverNotify.create({
+      _id: newDeliverNotifyId,
+      orderId: message.orderDetail.orderId,
+      status: "Approved",
+      isRead: false,
+    });
+
+    const deliverNoti = await DeliverNotify.find();
+    let deliverUnreadNoti = 0;
+    // for (let index = 0; index < deliverNoti.length; index++) {
+    //   if (userNoti[index].isRead != true) {
+    //     deliverUnreadNoti++;
+    //   }
+    // }
+
+    deliverNoti.map((deliver) => {
+      if (deliver.isRead != true) {
+        deliverUnreadNoti++;
+      }
+    });
+
+    //emit order approved to deliver
+    socket.to("deliver").emit("deliver:recieve-new-order", {
+      message: "new order has been approved",
+      deliverUnreadNoti,
+      deliverNoti,
+    });
   });
 
   //user finish order
@@ -148,15 +196,22 @@ io.on("connection", (socket) => {
     const newId = new mongoose.Types.ObjectId();
     await Notification.create({
       _id: newId,
-      isRead: true,
+      isRead: false,
       email: message.email,
       status: "Finish",
       orderId: message.orderId.orderId,
     });
     const userNoti = await Notification.find({ email: message.email });
+    let userUnreadNoti = 0;
+    for (let index = 0; index < userNoti.length; index++) {
+      if (userNoti[index].isRead != true) {
+        userUnreadNoti++;
+      }
+    }
     socket.to(message.email).emit("server:finish-order", {
       message: "you have finished your order, thank you for your buying",
       notify: userNoti,
+      userUnreadNoti,
     });
     //emit to manager room that user finish
     //return new notify to admin too
@@ -174,8 +229,132 @@ io.on("connection", (socket) => {
     });
   });
 
-  //testing space below
+  //deliver take order
+  socket.on("deliver:take-order", async (message) => {
+    //send message to manager
+    const newId = new mongoose.Types.ObjectId();
+    await Notification.create({
+      _id: newId,
+      isRead: false,
+      status: "Delivering",
+      orderId: message.orderId,
+    });
+    const managerNoti = await Notification.find();
+    let managerUnreadNoti = 0;
+    managerNoti.map((noti) => {
+      if (noti.isRead != true) {
+        managerUnreadNoti++;
+      }
+    });
+    socket.to("manager").emit("manager:order-taken", {
+      message: "a deliver has taken an order",
+      notify: managerNoti,
+      managerUnreadNoti,
+    });
+    //send message to order owner
+    const orderDetail = await Order.find({ _id: message.orderId });
+    const userDetail = await User.find({ _id: orderDetail[0].userId });
+    const userNoti = await Notification.find({ email: userDetail[0].email });
+    let userUnreadNoti = 0;
+    userNoti.map((noti) => {
+      if (noti.isRead != true) {
+        userUnreadNoti++;
+      }
+    });
+    socket.to(userDetail[0].email).emit("user:order-taken", {
+      message: "your order is taken by a deliver",
+      notify: userNoti,
+      userUnreadNoti,
+    });
+  });
 
+  //deliver finish order
+  socket.on("deliver:finish-order", async (message) => {
+    console.log(message);
+    //send message to manager
+    await Notification.updateOne(
+      { orderId: message.orderId },
+      {
+        $set: {
+          isRead: false,
+          status: "Finish",
+        },
+      }
+    );
+    const managerNoti = await Notification.find();
+    let managerUnreadNoti = 0;
+    managerNoti.map((noti) => {
+      if (noti.isRead != true) {
+        managerUnreadNoti++;
+      }
+    });
+    socket.to("manager").emit("manager:deliver-finish-order", {
+      message: "a deliver has finished an order",
+      notify: managerNoti,
+      managerUnreadNoti,
+    });
+    //send message to order owner
+    const orderDetail = await Order.find({ _id: message.orderId });
+    const userDetail = await User.find({ _id: orderDetail[0].userId });
+    const userNoti = await Notification.find({ email: userDetail[0].email });
+    let userUnreadNoti = 0;
+    userNoti.map((noti) => {
+      if (noti.isRead != true) {
+        userUnreadNoti++;
+      }
+    });
+    socket.to(userDetail[0].email).emit("user:deliver-finish-order", {
+      message: "your order is delivered",
+      notify: userNoti,
+      userUnreadNoti,
+    });
+  });
+
+  //deliver cancel order
+  socket.on("deliver:cancel-order", async (message) => {
+    console.log(message);
+    //send message to manager
+    await Notification.updateOne(
+      { orderId: message.orderId },
+      {
+        $set: {
+          isRead: false,
+          status: "Cancelled",
+        },
+      }
+    );
+    const managerNoti = await Notification.find();
+    let managerUnreadNoti = 0;
+    managerNoti.map((noti) => {
+      if (noti.isRead != true) {
+        managerUnreadNoti++;
+      }
+    });
+    socket.to("manager").emit("manager:deliver-cancel-order", {
+      message: "a deliver has cancelled an order",
+      notify: managerNoti,
+      managerUnreadNoti,
+    });
+    //send message to order owner
+    const orderDetail = await Order.find({ _id: message.orderId });
+    const userDetail = await User.find({ _id: orderDetail[0].userId });
+    const userNoti = await Notification.find({ email: userDetail[0].email });
+    let userUnreadNoti = 0;
+    userNoti.map((noti) => {
+      if (noti.isRead != true) {
+        userUnreadNoti++;
+      }
+    });
+    socket.to(userDetail[0].email).emit("user:deliver-cancel-order", {
+      message: "your order is cancelled",
+      notify: userNoti,
+      userUnreadNoti,
+    });
+  });
+
+  //testing space below
+  //
+  //
   //sent to room from admin
   socket.on("user:send-to-room", async (message) => {
     console.log(message);
@@ -186,7 +365,8 @@ io.on("connection", (socket) => {
 
   //listen to client
   socket.on("chat message", (msg) => {
-    console.log(msg.message);
+    console.log(msg);
+
     //send message to client
     io.to(msg.socketId).emit(
       "server saying: ",
@@ -215,6 +395,7 @@ app.use("/user", userRouter);
 app.use("/product", productRouter);
 app.use("/cart", cartRouter);
 app.use("/admin", adminRouter);
+app.use("/deliver", deliverRouter);
 app.use("/testing", testingRouter);
 
 app.listen(port, console.log(`Server is listening to port: ${port}`));

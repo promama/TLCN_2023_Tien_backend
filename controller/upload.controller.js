@@ -186,4 +186,46 @@ module.exports.deleteSingleFileCloudinary = async (req, res) => {
   });
 };
 
+module.exports.uploadDeliveringImage = async (req, res, next) => {
+  // try {
+  //   console.log(JSON.parse(req.body?.deliverData));
+  // } catch (err) {
+  //   return res.status(400).json({
+  //     message: "Please choose an image to upload",
+  //   });
+  // // }
+  // const request = JSON.parse(req.body?.deliverData);
+  // const { orderId, email } = request;
+  let listURL = [];
+
+  if (req.files == undefined || req.files == "") {
+    return res.status(400).json({ success: false, message: "no file found" });
+  }
+  try {
+    req.files.map((file) => {
+      console.log(file);
+    });
+  } catch (err) {
+    return res.status(400).json({ success: false, message: err });
+  }
+
+  for (let i = 0; i < req.files.length; i++) {
+    const b64 = Buffer.from(req.files[i].buffer).toString("base64");
+    let dataURI = "data:" + req.files[i].mimetype + ";base64," + b64;
+    const cldRes = await handleUpload(dataURI, "deliver", req.body.email);
+    if (cldRes == false) {
+      return res.json({
+        success: false,
+        message: "upload not working",
+      });
+    }
+    listURL.push(cldRes.secure_url);
+  }
+
+  // //set body for next
+  req.body.url = listURL[0];
+
+  next();
+};
+
 exports.handleDeleteSingleFileCloudinary = handleDeleteSingleFileCloudinary;
