@@ -223,6 +223,7 @@ module.exports.verifyDeliver = async (req, res, next) => {
   console.log("token is expire, check refresh_token");
   //check if refresh_token is expire
   const deliver = await Deliver.find({ email });
+
   if (deliver.length > 1) {
     return res.status(500).json({
       success: false,
@@ -675,6 +676,90 @@ module.exports.finishDeliverOrder = async (req, res, next) => {
     { orderId },
     { $set: { finishUri: url, status: "Delivered" } }
   );
+  next();
+};
+
+module.exports.showOrderDetail = async (req, res) => {
+  const { orderId, email } = req.body;
+
+  // console.log(deliverId);
+  const listOrder = [];
+
+  const deliver = await Deliver.find({ email });
+  const data = await Deliverorder.aggregate([
+    {
+      $lookup: {
+        from: "productincarts",
+        let: { order_id: "$orderId" },
+        pipeline: [
+          {
+            $match: {
+              $expr: {
+                $and: [{ $eq: ["$orderId", "$$order_id"] }],
+              },
+            },
+          },
+        ],
+        as: "data",
+      },
+    },
+  ]);
+  data.map((order) => {
+    if (order.orderId == orderId) {
+      if (order.deliverId) {
+        const tempList = {
+          orderId: order.orderId,
+          status: order.status,
+          total: order.total,
+          address: order.address,
+          name: order.name,
+          phoneNumber: order.phoneNumber,
+          productInOrder: [...order.data],
+          availible: false,
+        };
+        listOrder.push(tempList);
+      } else {
+        const tempList = {
+          orderId: order.orderId,
+          status: order.status,
+          total: order.total,
+          address: order.address,
+          name: order.name,
+          phoneNumber: order.phoneNumber,
+          productInOrder: [...order.data],
+          availible: true,
+        };
+        listOrder.push(tempList);
+      }
+    }
+  });
+  console.log(listOrder);
+  return res.status(200).json({
+    success: true,
+    listOrder,
+  });
+};
+
+module.exports.showAllNotification = async (req, res) => {
+  const deliverNoti = await Delivernotify.find();
+  let deliverUnreadNoti = 0;
+  deliverNoti.map((deliver) => {
+    if (deliver.isRead != true) {
+      deliverUnreadNoti++;
+    }
+  });
+
+  return res.status(200).json({
+    success: true,
+    deliverUnreadNoti,
+    deliverNoti,
+  });
+};
+
+module.exports.markAsReadNotification = async (req, res, next) => {
+  const { orderId } = req.body;
+
+  await Delivernotify.updateOne({ orderId }, { $set: { isRead: true } });
   next();
 };
 

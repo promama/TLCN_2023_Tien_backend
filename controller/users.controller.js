@@ -158,6 +158,13 @@ module.exports.notification = async (req, res) => {
   });
 };
 
+module.exports.markAsReadNotification = async (req, res, next) => {
+  const { notiId } = req.body;
+
+  await Notification.updateOne({ _id: notiId }, { $set: { isRead: true } });
+  next();
+};
+
 module.exports.createAccount = (req, res) => {
   if (
     req.body.email == "" ||

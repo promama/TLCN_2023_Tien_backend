@@ -108,7 +108,100 @@ module.exports.decodeUserToken = async (token) => {
   return accessTokenDecode;
 };
 
+async function checkTokenExpiration(token, key) {
+  let tokenDecode;
+  //verify token
+  try {
+    tokenDecode = jwt.verify(token.toString(), key);
+    //decode tokena
+    tokenDecode = jwt.decode(token.toString(), key);
+  } catch {
+    return { isExpire: true };
+  }
+  //if token is not expire
+  return { isExpire: false, email: tokenDecode };
+}
+
 module.exports.verifyUser = async (req, res, next) => {
+  let access_token = "";
+  const { email, refresh_token } = req.body;
+
+  if (email === "") {
+    return res.status(500).json({
+      success: false,
+      message: "no email",
+    });
+  }
+  //retrive token from header authorization bearer
+  if (
+    req.headers.authorization &&
+    req.headers.authorization.split(" ")[0] === "Bearer"
+  ) {
+    access_token = req.headers.authorization.split(" ")[1];
+  } else {
+    return res.status(500).json({
+      success: false,
+      message: "header wrong",
+    });
+  }
+  //check if access_token is expire
+  const access_token_expiration = await checkTokenExpiration(
+    access_token,
+    (key = process.env.ACCESS_TOKEN_SECRET)
+  );
+  if (!access_token_expiration.isExpire) {
+    //set new token to req body
+    req.body.token = access_token;
+    return next();
+    // return res.status(200).json({
+    //   success: true,
+    //   access_token_expiration,
+    //   message: "access token not expire",
+    // });
+  }
+
+  console.log("token is expire, check refresh_token");
+  //check if refresh_token is expire
+  const deliver = await User.find({ email });
+  console.log(email);
+  console.log(deliver);
+
+  if (deliver.length > 1) {
+    return res.status(500).json({
+      success: false,
+      message: "no user found",
+    });
+  }
+
+  for (let index = 0; index < deliver[0].refreshToken.length; index++) {
+    const refresh_token_expiration = await checkTokenExpiration(
+      deliver[0].refreshToken[index],
+      (key = process.env.REFRESH_TOKEN_SECRET)
+    );
+
+    if (!refresh_token_expiration.isExpire) {
+      //sign a new token
+      const token = jwt.sign({ email }, process.env.ACCESS_TOKEN_SECRET, {
+        expiresIn: "1m",
+      });
+      req.body.token = token;
+      return next();
+      // return res.status(200).json({
+      //   success: true,
+      //   refresh_token_expiration,
+      //   message: "refresh token not expire",
+      // });
+    }
+  }
+
+  return res.status(500).json({
+    success: false,
+    message: "signin again",
+    reason: "refresh token and access token are expire, require login again",
+  });
+};
+
+module.exports.oldverifyUser = async (req, res, next) => {
   let isTokenExpire = false;
   let refreshTokenDecode = true;
   let accessTokenDecode;

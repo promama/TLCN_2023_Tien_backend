@@ -8,7 +8,6 @@ var orderController = require("../controller/order.controller");
 router.get("/", userController.test);
 router.post("/createUser", userController.createAccount);
 router.post("/login", userController.loginAccount);
-router.post("/notification", userController.notification);
 
 //verify sign in middleware
 router.use(authController.verifyUser);
@@ -34,6 +33,12 @@ router.post(
   "/rateProduct",
   userController.rateProduct,
   orderController.getAllOrderById
+);
+router.post("/notification", userController.notification);
+router.post(
+  "/readNotify",
+  userController.markAsReadNotification,
+  userController.notification
 );
 
 module.exports = router;
