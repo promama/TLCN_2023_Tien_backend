@@ -151,7 +151,26 @@ module.exports.verifyUser = async (req, res, next) => {
   );
   if (!access_token_expiration.isExpire) {
     //set new token to req body
+    const userId = await User.find({ email }, "_id role");
+    if (!userId) {
+      return res.status(500).json({
+        success: false,
+        message: "signin again",
+        number: "2",
+      });
+    }
+    req.body.userId = userId;
     req.body.token = access_token;
+    const cart = await Cart.find({ userId: userId[0]._id });
+    if (!cart) {
+      return res.status(500).json({
+        success: false,
+        message: "no cart found",
+      });
+    }
+    console.log(cart[0]);
+    req.body.cartInfos = cart[0];
+
     return next();
     // return res.status(200).json({
     //   success: true,
@@ -184,6 +203,26 @@ module.exports.verifyUser = async (req, res, next) => {
       const token = jwt.sign({ email }, process.env.ACCESS_TOKEN_SECRET, {
         expiresIn: "1m",
       });
+      const userId = await User.find({ email }, "_id role");
+      if (!userId) {
+        return res.status(500).json({
+          success: false,
+          message: "signin again",
+          number: "6",
+        });
+      }
+      req.body.userId = userId;
+
+      const cart = await Cart.find({ userId: userId[0]?._id });
+      if (!cart) {
+        return res.status(500).json({
+          success: false,
+          message: "no cart found",
+        });
+      }
+      console.log(cart[0]);
+      req.body.cartInfos = cart[0];
+
       req.body.token = token;
       return next();
       // return res.status(200).json({

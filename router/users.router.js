@@ -14,7 +14,7 @@ router.use(authController.verifyUser);
 
 //user
 router.post("/getAllAddress", userController.getAllAddress);
-router.get("/showUserShortProfile", userController.showUserShortProfile);
+router.post("/showUserShortProfile", userController.showUserShortProfile);
 router.post("/verify", adminController.passVerify);
 router.post("/createNewAddress", userController.createNewAddress);
 router.post("/editUserProfile", userController.editUserProfile);
