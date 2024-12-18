@@ -336,7 +336,29 @@ module.exports.statisticIncomeBetweenTwoDates = async (req, res) => {
 };
 
 module.exports.generalStatistic = async (req, res) => {
-  const income = await Income.find().sort({ year: -1, month: -1 });
+  // const income = await Income.find().sort({ year: -1, month: -1 });
+  const income = await Income.aggregate([
+    {
+      $project: {
+        day: { $substr: ["$date", 8, 2] },
+        month: { $substr: ["$date", 5, 2] },
+        year: { $substr: ["$date", 0, 4] },
+        income: "$income",
+      },
+    },
+    {
+      $group: {
+        _id: {
+          year: "$year",
+          month: "$month",
+        },
+        income: { $sum: "$income" },
+      },
+    },
+    {
+      $sort: { "_id.year": -1, "_id.month": -1 },
+    },
+  ]);
   const product = await Product.find();
   const user = await User.find();
   var total = 0;

@@ -206,6 +206,7 @@ module.exports.uploadDeliveringImage = async (req, res, next) => {
       console.log(file);
     });
   } catch (err) {
+    console.log(err);
     return res.status(400).json({ success: false, message: err });
   }
 
@@ -214,6 +215,7 @@ module.exports.uploadDeliveringImage = async (req, res, next) => {
     let dataURI = "data:" + req.files[i].mimetype + ";base64," + b64;
     const cldRes = await handleUpload(dataURI, "deliver", req.body.email);
     if (cldRes == false) {
+      console.log("err");
       return res.json({
         success: false,
         message: "upload not working",

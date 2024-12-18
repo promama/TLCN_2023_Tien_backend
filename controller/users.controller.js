@@ -78,13 +78,13 @@ module.exports.loginAccount = async (req, res) => {
             status: user[0].status,
           },
           process.env.REFRESH_TOKEN_SECRET,
-          { expiresIn: "1h" }
+          { expiresIn: "6h" }
         );
         //create access token with time limit: 5mins
         const token = jwt.sign(
           { email: user[0].email, role: user[0].role },
           process.env.ACCESS_TOKEN_SECRET,
-          { expiresIn: "5m" }
+          { expiresIn: "30m" }
         );
         //find user and update refresh token
         const userFound = await User.findOneAndUpdate(

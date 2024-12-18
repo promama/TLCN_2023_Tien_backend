@@ -159,7 +159,7 @@ module.exports.getAllOrderById = async (req, res) => {
         listStatus[1]++;
       } else if (order.status === "Delivering") {
         listStatus[2]++;
-      } else if (order.status === "Cancel") {
+      } else if (order.status === "Cancelled") {
         listStatus[3]++;
       } else if (order.status === "Finish") {
         listStatus[4]++;

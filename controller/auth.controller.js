@@ -125,11 +125,12 @@ async function checkTokenExpiration(token, key) {
 module.exports.verifyUser = async (req, res, next) => {
   let access_token = "";
   const { email, refresh_token } = req.body;
+  console.log("email: " + email);
 
-  if (email === "") {
+  if (email == null || email == "") {
     return res.status(500).json({
       success: false,
-      message: "no email",
+      message: "signin again",
     });
   }
   //retrive token from header authorization bearer

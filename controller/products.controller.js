@@ -562,6 +562,7 @@ module.exports.findProductById = async (req, res) => {
         success: true,
         product,
         color: price[0].productColor,
+        base_price: product[0].price,
       });
     }
   } catch (err) {

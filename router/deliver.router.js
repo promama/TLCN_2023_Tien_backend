@@ -11,12 +11,6 @@ router.post("/login", deliverController.loginDeliver);
 router.post("/signup", deliverController.createDeliver);
 
 router.post("/testCreateToken", deliverController.testCreateToken);
-//middleware verify token
-router.use(deliverController.verifyDeliver);
-
-router.post("/showDeliveringOrder", deliverController.showMyDeliveringOrder);
-router.post("/showSuccessOrder", deliverController.showMyDeliveringSuccess);
-router.post("/showCancelOrder", deliverController.showMyDeliveringCancel);
 
 router.post(
   "/uploadImage",
@@ -25,6 +19,12 @@ router.post(
   deliverController.finishDeliverOrder,
   deliverController.showMyDeliveringOrder
 );
+//middleware verify token
+router.use(deliverController.verifyDeliver);
+
+router.post("/showDeliveringOrder", deliverController.showMyDeliveringOrder);
+router.post("/showSuccessOrder", deliverController.showMyDeliveringSuccess);
+router.post("/showCancelOrder", deliverController.showMyDeliveringCancel);
 
 router.post("/verify", deliverController.checkDeliver);
 router.post("/showAllOrder", deliverController.showAllOrder);
